@@ -104,7 +104,8 @@ export function Stage({ children }: { children: ReactNode }) {
         style={FIXED}
         dpr={[1, support.dpr]}
         camera={{ fov: 26, position: [0, 3.5, 4.3], near: 0.1, far: 50 }}
-        gl={{ antialias: true, alpha: true, toneMapping: NeutralToneMapping }}
+        // MSAA happens in Composite's scene target; the default framebuffer only gets a full-screen pass.
+        gl={{ antialias: false, alpha: true, toneMapping: NeutralToneMapping }}
         onCreated={({ gl, scene, camera }) => {
           camera.lookAt(0, 0, 0);
           if (process.env.NODE_ENV !== 'production') Object.assign(window, { __phosphor: { gl, scene, camera } });

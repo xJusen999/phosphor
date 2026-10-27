@@ -1,14 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { Group } from 'three';
 import type { BuildConfig } from '@phosphor/shared';
 import { Stage } from '../src/three/Stage';
 import { Keyboard } from '../src/three/Keyboard';
+import { Smoke } from '../src/three/Smoke';
+import { Composite } from '../src/three/Composite';
+import { Hero } from '../src/sections/Hero';
 
 const FINISH: BuildConfig = { caseFinish: 'frost', keycaps: 'phosphor', switchType: 'linear' };
 
-// Placeholder page: the hero keyboard only (sections and navigation come later).
+// Hero only for now (sections and key navigation come in the next task).
 export default function Home() {
+  const keyboard = useRef<Group>(null);
   const [pressed, setPressed] = useState<Set<string>>(() => new Set());
   useEffect(() => {
     const set = (code: string, down: boolean) =>
@@ -34,12 +39,14 @@ export default function Home() {
 
   return (
     <main>
-      <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Phosphor One</h1>
       <Stage>
-        <group rotation={[0, -0.32, 0]} position={[0, -0.18, 0]}>
+        <group ref={keyboard} rotation={[0, -0.32, 0]} position={[0.42, -0.4, 0.1]} scale={0.78}>
           <Keyboard pressed={pressed} finish={FINISH} explode={0} />
         </group>
+        <Smoke pressed={pressed} keyboard={keyboard} />
+        <Composite />
       </Stage>
+      <Hero />
     </main>
   );
 }
