@@ -1,7 +1,7 @@
 import { OPTIONS } from '@phosphor/shared';
 import type { BuildConfig } from '@phosphor/shared';
 import { Type } from 'class-transformer';
-import { IsDefined, IsIn, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import { IsIn, IsNumber, IsObject, IsOptional, ValidateNested } from 'class-validator';
 import { IsEmailAddress } from '../validators';
 
 export class ConfigDto implements BuildConfig {
@@ -11,7 +11,7 @@ export class ConfigDto implements BuildConfig {
 }
 
 export class OrderDto {
-  @IsDefined() @ValidateNested() @Type(() => ConfigDto) config: ConfigDto;
+  @IsObject() @ValidateNested() @Type(() => ConfigDto) config: ConfigDto;
   @IsEmailAddress() email: string;
   // Accepted so the client may send it, but never trusted: the server recomputes the price.
   @IsOptional() @IsNumber() total?: number;

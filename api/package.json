@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "npm --prefix ../shared run build",
     "build": "tsc -p tsconfig.json",
     "start": "npm run build && node dist/main.js",
+    "pretest": "npm --prefix ../shared run build",
     "test": "jest --config jest.config.js"
   },
   "dependencies": {

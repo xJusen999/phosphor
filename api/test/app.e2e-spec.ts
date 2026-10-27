@@ -61,6 +61,9 @@ describe('orders', () => {
     await http().post('/orders').send({ config: { ...config, caseFinish: 'gold' }, email: 'a@b.co' }).expect(400);
     await http().post('/orders').send({ config, email: 'nope' }).expect(400);
     await http().post('/orders').send({ email: 'a@b.co' }).expect(400);
+    await http().post('/orders').send({ config: [], email: 'a@b.co' }).expect(400);
+    await http().post('/orders').send({ config: [config], email: 'a@b.co' }).expect(400);
+    await http().post('/orders').send({ config: 'clear', email: 'a@b.co' }).expect(400);
   });
 });
 

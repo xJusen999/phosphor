@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
@@ -8,12 +9,24 @@ export class JsonStore<T> {
   constructor(private readonly file: string) {}
 
   async read(): Promise<T[]> {
+    let text: string;
     try {
-      return JSON.parse(await readFile(this.file, 'utf8')) as T[];
+      text = await readFile(this.file, 'utf8');
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
       throw e;
     }
+    try {
+      const data: unknown = JSON.parse(text);
+      if (Array.isArray(data)) return data as T[];
+    } catch {
+      // fall through to quarantine
+    }
+    // Unusable file: keep it for inspection and start fresh instead of failing every request.
+    const aside = this.file.replace(/(\.json)?$/, `.corrupt-${Date.now()}.json`);
+    new Logger('JsonStore').warn(`${this.file} is not a JSON array; moved to ${aside}`);
+    await rename(this.file, aside).catch(() => undefined); // a concurrent reader may have moved it already
+    return [];
   }
 
   /**
