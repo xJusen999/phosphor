@@ -7,7 +7,7 @@ import {
   Vector2, Vector4, WebGLRenderTarget, type Texture,
 } from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import { fx, GL_READY_EVENT } from './bus';
+import { fx, GL_READY_EVENT, markGLLost } from './bus';
 
 const BLOOM_LEVELS = 5;
 
@@ -206,6 +206,8 @@ export function Composite() {
     const move = (e: PointerEvent) => st.current.mouse.set(e.clientX / innerWidth, 1 - e.clientY / innerHeight);
     addEventListener('pointermove', move, { passive: true });
     st.current.lastY = scrollY;
+    const lost = () => markGLLost();
+    gl.domElement.addEventListener('webglcontextlost', lost);
     const autoClear = gl.autoClear;
     gl.autoClear = false;
     return () => {
@@ -214,11 +216,13 @@ export function Composite() {
       gl.autoClear = autoClear;
       st.current.text?.dispose();
       Object.values(m).forEach((x) => x.dispose());
-      fx.glReady = false;
+      gl.domElement.removeEventListener('webglcontextlost', lost);
+      markGLLost();
     };
   }, [gl, m]);
 
   useFrame(({ scene, camera, clock }, delta) => {
+    if (gl.getContext().isContextLost()) return; // R3F keeps ticking; announcing "ready" now would hide the DOM headline
     const s = st.current;
     const dt = Math.max(delta, 1 / 240);
 

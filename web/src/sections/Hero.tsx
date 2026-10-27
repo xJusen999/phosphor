@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
-import { fx, GL_READY_EVENT } from '../three/bus';
+import { fx, GL_LOST_EVENT, GL_READY_EVENT } from '../three/bus';
 import s from './Hero.module.css';
 
 const LINKS = [
@@ -52,6 +52,7 @@ export function Hero() {
     let version = 0;
     let alive = true;
     let resizeTimer = 0;
+    let introDone = false;
 
     const paint = () => {
       if (!split) return;
@@ -59,15 +60,17 @@ export function Hero() {
       fx.headline = { el, canvas, pad, version: ++version };
     };
     const handOff = () => {
-      if (!alive) return;
+      if (!alive || !introDone || !fx.glReady) return;
       paint();
       fx.headlineGL = 1;
       el.classList.add(s.gl);
     };
+    // GL can come and go (context loss, error fallback, remounts): follow it both ways.
     const whenGL = () => {
-      if (fx.glReady) handOff();
-      else addEventListener(GL_READY_EVENT, handOff, { once: true });
+      introDone = true;
+      handOff();
     };
+    const takeBack = () => el.classList.remove(s.gl);
     const onResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(paint, 120);
@@ -84,12 +87,15 @@ export function Hero() {
       });
     }, root);
     addEventListener('resize', onResize);
+    addEventListener(GL_READY_EVENT, handOff);
+    addEventListener(GL_LOST_EVENT, takeBack);
 
     return () => {
       alive = false;
       clearTimeout(resizeTimer);
       removeEventListener('resize', onResize);
       removeEventListener(GL_READY_EVENT, handOff);
+      removeEventListener(GL_LOST_EVENT, takeBack);
       fx.headline = null;
       fx.headlineGL = 0;
       split?.revert();

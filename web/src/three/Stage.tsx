@@ -7,7 +7,8 @@ import {
   RectAreaLight, SRGBColorSpace,
 } from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
-import { maxDpr } from './quality';
+import { canRenderGL, maxDpr } from './quality';
+import { markGLLost } from './bus';
 
 // Studio: a canvas-painted room (soft top light, two hot strips, warm floor bounce) → PMREM,
 // plus a key light and one RectAreaLight strip raking across the caps.
@@ -75,15 +76,20 @@ class GLBoundary extends Component<{ children: ReactNode }, { failed: boolean }>
   static getDerivedStateFromError() {
     return { failed: true };
   }
+  componentDidCatch() {
+    markGLLost();
+  }
   render() {
     return this.state.failed ? <Fallback /> : this.props.children;
   }
 }
 
+// WebGL2 with renderable half-float targets; anything less gets the still image.
 function hasWebGL2() {
   const gl = document.createElement('canvas').getContext('webgl2');
+  const ok = canRenderGL(gl);
   gl?.getExtension('WEBGL_lose_context')?.loseContext(); // free the probe context right away
-  return !!gl;
+  return ok;
 }
 
 /** Fixed full-screen canvas; falls back to a still image without WebGL2. */

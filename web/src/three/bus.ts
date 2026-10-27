@@ -16,3 +16,11 @@ export const fx = {
 };
 
 export const GL_READY_EVENT = 'phosphor:gl-ready';
+export const GL_LOST_EVENT = 'phosphor:gl-lost';
+
+/** GL went away (context lost, composite unmounted, error boundary fell back): the DOM headline must paint again. */
+export function markGLLost(target: EventTarget = window) {
+  fx.glReady = false;
+  fx.headlineGL = 0;
+  target.dispatchEvent(new Event(GL_LOST_EVENT));
+}
