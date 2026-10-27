@@ -165,6 +165,7 @@ describe('artifact db robustness', () => {
     ['invalid_argument', 'denied'],
     ['unavailable', 'unavailable'],
     ['quota_exceeded', 'unavailable'],
+    ['network', 'unavailable'],
     ['weird', 'unknown'],
   ])('maps store error %s to DataError %s', async (storeCode, code) => {
     const reject = async () => { throw { code: storeCode, message: 'x' }; };
@@ -180,6 +181,14 @@ describe('artifact db robustness', () => {
       expect(err).toBeInstanceOf(DataError);
       expect(err.code).toBe(code);
     }
+  });
+
+  it('maps a codeless TypeError (Failed to fetch) to unavailable', async () => {
+    const reject = async () => { throw new TypeError('Failed to fetch'); };
+    const db = { doc: () => ({ get: reject, set: reject }), collection: () => ({ add: reject, get: reject, orderBy: () => ({ limit: () => ({ get: reject }) }) }) };
+    const err = await createArtifactDb(db).topScores().catch((e) => e);
+    expect(err).toBeInstanceOf(DataError);
+    expect(err.code).toBe('unavailable');
   });
 
   it('maps an unknown config option to invalid', async () => {

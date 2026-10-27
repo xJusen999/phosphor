@@ -36,7 +36,7 @@ async function allScores(db: DbLike): Promise<(Score & { id: string })[]> {
 }
 
 const DENIED = new Set(['not_granted', 'not_writer', 'invalid_argument', 'capability_disabled', 'capability_removed']);
-const UNAVAILABLE = new Set(['unavailable', 'revoked', 'quota_exceeded', 'resource_exhausted']);
+const UNAVAILABLE = new Set(['unavailable', 'network', 'revoked', 'quota_exceeded', 'resource_exhausted']);
 
 // Store rejections become DataError; never a fake success.
 function toDataError(e: unknown): DataError {
@@ -46,6 +46,8 @@ function toDataError(e: unknown): DataError {
     if (DENIED.has(code)) return new DataError('denied', code);
     if (UNAVAILABLE.has(code)) return new DataError('unavailable', code);
   }
+  // A codeless fetch-style failure is a network problem.
+  if (e instanceof TypeError && typeof code !== 'string') return new DataError('unavailable', e.message);
   if (e instanceof Error && e.message === 'unknown option') return new DataError('invalid', e.message);
   return new DataError('unknown', e instanceof Error ? e.message : String(code ?? e));
 }
