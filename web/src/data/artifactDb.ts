@@ -1,5 +1,5 @@
 import { priceOf } from '@phosphor/shared';
-import { byRank, type DataClient, type Score } from './client';
+import { byRank, DataError, type DataClient, type Score } from './client';
 
 type Body = Record<string, unknown>;
 type DocSnap = { id: string; exists?: boolean; data(): Body | undefined };
@@ -27,10 +27,38 @@ const emailHash = (email: string) => sha256Hex(email.trim().toLowerCase());
 // shortcut: ranks only look at the 1000 fastest scores, the query cap; fine for a demo leaderboard.
 async function allScores(db: DbLike): Promise<(Score & { id: string })[]> {
   const snap = await db.collection('scores').orderBy('wpm', 'desc').limit(1000).get();
-  return snap.docs.map((d) => ({ ...(d.data() as Score), id: d.id }));
+  // Shared docs are writable by any viewer: keep only well-formed ones.
+  return snap.docs.flatMap((d) => {
+    const x = d.data();
+    if (!x || typeof x.name !== 'string' || !Number.isFinite(x.wpm) || !Number.isFinite(x.accuracy)) return [];
+    return [{ name: x.name, wpm: x.wpm as number, accuracy: x.accuracy as number, at: String(x.at ?? ''), id: d.id }];
+  });
 }
 
-export function createArtifactDb(db: DbLike): DataClient {
+const DENIED = new Set(['not_granted', 'not_writer', 'invalid_argument', 'capability_disabled', 'capability_removed']);
+const UNAVAILABLE = new Set(['unavailable', 'revoked', 'quota_exceeded', 'resource_exhausted']);
+
+// Store rejections become DataError; never a fake success.
+function toDataError(e: unknown): DataError {
+  if (e instanceof DataError) return e;
+  const code = (e as { code?: unknown } | null)?.code;
+  if (typeof code === 'string') {
+    if (DENIED.has(code)) return new DataError('denied', code);
+    if (UNAVAILABLE.has(code)) return new DataError('unavailable', code);
+  }
+  if (e instanceof Error && e.message === 'unknown option') return new DataError('invalid', e.message);
+  return new DataError('unknown', e instanceof Error ? e.message : String(code ?? e));
+}
+
+async function guard<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    throw toDataError(e);
+  }
+}
+
+function createRaw(db: DbLike): DataClient {
   return {
     mode: 'db',
     async joinWaitlist(email) {
@@ -60,7 +88,9 @@ export function createArtifactDb(db: DbLike): DataClient {
         .collection('scores')
         .add({ name: s.name, wpm: s.wpm, accuracy: s.accuracy, at: new Date().toISOString() });
       const sorted = (await allScores(db)).sort(byRank);
-      return { rank: Math.max(sorted.findIndex((x) => x.id === ref.id) + 1, 1) };
+      const i = sorted.findIndex((x) => x.id === ref.id);
+      // Not in the 1000-score window: ranked after everything we can see.
+      return { rank: i < 0 ? sorted.length + 1 : i + 1 };
     },
     async topScores() {
       return (await allScores(db))
@@ -68,5 +98,16 @@ export function createArtifactDb(db: DbLike): DataClient {
         .slice(0, 10)
         .map(({ name, wpm, accuracy, at }) => ({ name, wpm, accuracy, at }));
     },
+  };
+}
+
+export function createArtifactDb(db: DbLike): DataClient {
+  const raw = createRaw(db);
+  return {
+    mode: 'db',
+    joinWaitlist: (e) => guard(() => raw.joinWaitlist(e)),
+    placeOrder: (c, e) => guard(() => raw.placeOrder(c, e)),
+    submitScore: (s) => guard(() => raw.submitScore(s)),
+    topScores: () => guard(() => raw.topScores()),
   };
 }

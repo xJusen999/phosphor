@@ -20,6 +20,12 @@ function* walk(dir) {
 let bad = 0;
 for (const file of walk(root)) {
   const depth = relative(root, file).split(sep).length - 1;
+  // JS paths are document-relative ("./"), so a page below the root would load chunks from the wrong folder.
+  if (depth > 0 && file.endsWith('.html')) {
+    console.error(`relativize: nested page ${file}; only root-level pages are supported`);
+    bad++;
+    continue;
+  }
   const prefix = file.endsWith('.js') || depth === 0 ? './' : '../'.repeat(depth);
   const src = readFileSync(file, 'utf8');
   const out = src.replace(ABS, (_, dir) => `${prefix}${dir}/`);

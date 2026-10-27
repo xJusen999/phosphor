@@ -35,4 +35,11 @@ describe('relativize', () => {
     const r = spawnSync('node', [script, dir]);
     expect(r.status).toBe(1);
   });
+
+  it('exits non-zero when a page exists below the root', () => {
+    const dir = fixture({ 'index.html': '<p>', 'sub/page.html': '<p>' });
+    const r = spawnSync('node', [script, dir]);
+    expect(r.status).toBe(1);
+    expect(r.stderr.toString()).toContain('nested page');
+  });
 });

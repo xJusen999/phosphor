@@ -3,6 +3,8 @@ import type { BuildConfig } from '@phosphor/shared';
 import { chooseClient } from '../src/data/choose';
 import { createOffline } from '../src/data/offline';
 import { createArtifactDb } from '../src/data/artifactDb';
+import { createApi } from '../src/data/api';
+import { DataError } from '../src/data/client';
 
 const clearBlankClicky: BuildConfig = { caseFinish: 'clear', keycaps: 'blank', switchType: 'clicky' };
 
@@ -130,5 +132,76 @@ describe('artifact db client', () => {
     const { rank } = await c.submitScore({ name: 'b', wpm: 90, accuracy: 95 });
     expect(rank).toBe(1);
     expect((await c.topScores())[0].name).toBe('b');
+  });
+});
+
+describe('artifact db robustness', () => {
+  it('ignores malformed score docs', async () => {
+    const db = fakeDb();
+    const c = createArtifactDb(db);
+    await c.submitScore({ name: 'a', wpm: 70, accuracy: 95 });
+    await c.submitScore({ name: 'b', wpm: 90, accuracy: 95 });
+    db.cols.scores.set('bad1', { name: 'x', wpm: 'fast', accuracy: 1 });
+    db.cols.scores.set('bad2', { wpm: 100, accuracy: 1 });
+    db.cols.scores.set('noat', { name: 'noat', wpm: 80, accuracy: 90 });
+    const top = await c.topScores();
+    expect(top.map((s) => s.name)).toEqual(['b', 'noat', 'a']);
+  });
+
+  it('ranks last+1 when the new score is outside the window', async () => {
+    const db = fakeDb();
+    const c = createArtifactDb(db);
+    const real = db.collection('scores');
+    // The query window never includes the doc just added.
+    db.collection = () => ({
+      ...real,
+      orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [{ id: 'other', data: () => ({ name: 'o', wpm: 99, accuracy: 99, at: 'x' }) }] }) }) }),
+    });
+    expect((await c.submitScore({ name: 'a', wpm: 1, accuracy: 1 })).rank).toBe(2);
+  });
+
+  it.each([
+    ['not_granted', 'denied'],
+    ['invalid_argument', 'denied'],
+    ['unavailable', 'unavailable'],
+    ['quota_exceeded', 'unavailable'],
+    ['weird', 'unknown'],
+  ])('maps store error %s to DataError %s', async (storeCode, code) => {
+    const reject = async () => { throw { code: storeCode, message: 'x' }; };
+    const db = { doc: () => ({ get: reject, set: reject }), collection: () => ({ add: reject, get: reject, orderBy: () => ({ limit: () => ({ get: reject }) }) }) };
+    const c = createArtifactDb(db);
+    for (const call of [
+      () => c.joinWaitlist('a@b.co'),
+      () => c.placeOrder(clearBlankClicky, 'a@b.co'),
+      () => c.submitScore({ name: 'a', wpm: 1, accuracy: 1 }),
+      () => c.topScores(),
+    ]) {
+      const err = await call().catch((e) => e);
+      expect(err).toBeInstanceOf(DataError);
+      expect(err.code).toBe(code);
+    }
+  });
+
+  it('maps an unknown config option to invalid', async () => {
+    const err = await createArtifactDb(fakeDb())
+      .placeOrder({ ...clearBlankClicky, keycaps: 'gold' as never }, 'a@b.co')
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(DataError);
+    expect(err.code).toBe('invalid');
+  });
+});
+
+describe('api client errors', () => {
+  const withFetch = (impl: () => Promise<unknown>) => vi.stubGlobal('fetch', vi.fn(impl));
+  const codeOf = (p: Promise<unknown>) => p.catch((e) => (e instanceof DataError ? e.code : 'not-DataError'));
+
+  it('maps 400 to invalid, 5xx and network failures to unavailable', async () => {
+    withFetch(async () => ({ ok: false, status: 400 }));
+    expect(await codeOf(createApi('http://x').topScores())).toBe('invalid');
+    withFetch(async () => ({ ok: false, status: 503 }));
+    expect(await codeOf(createApi('http://x').topScores())).toBe('unavailable');
+    withFetch(async () => { throw new TypeError('fetch failed'); });
+    expect(await codeOf(createApi('http://x').joinWaitlist('a@b.co'))).toBe('unavailable');
+    vi.unstubAllGlobals();
   });
 });
