@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { Component, useEffect, useState, type ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import {
   CanvasTexture, DirectionalLight, EquirectangularReflectionMapping, NeutralToneMapping, PMREMGenerator,
   RectAreaLight, SRGBColorSpace,
 } from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+import { maxDpr } from './quality';
 
 // Studio: a canvas-painted room (soft top light, two hot strips, warm floor bounce) → PMREM,
 // plus a key light and one RectAreaLight strip raking across the caps.
@@ -58,38 +59,60 @@ function Studio() {
   return null;
 }
 
+const FIXED = { position: 'fixed', inset: 0, width: '100%', height: '100%' } as const;
+
+function Fallback() {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="./keyboard-fallback.webp" alt="The Phosphor One keyboard, backlit in phosphor green"
+      style={{ ...FIXED, objectFit: 'contain', pointerEvents: 'none' }} />
+  );
+}
+
+// WebGL can still fail after the probe (context creation, lost GPU): show the still instead of nothing.
+class GLBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <Fallback /> : this.props.children;
+  }
+}
+
+function hasWebGL2() {
+  const gl = document.createElement('canvas').getContext('webgl2');
+  gl?.getExtension('WEBGL_lose_context')?.loseContext(); // free the probe context right away
+  return !!gl;
+}
+
 /** Fixed full-screen canvas; falls back to a still image without WebGL2. */
 export function Stage({ children }: { children: ReactNode }) {
-  const [support, setSupport] = useState<null | { webgl2: boolean; coarse: boolean }>(null);
+  const [support, setSupport] = useState<null | { webgl2: boolean; dpr: number }>(null);
   useEffect(() => {
     setSupport({
-      webgl2: !!document.createElement('canvas').getContext('webgl2'),
-      coarse: matchMedia('(pointer: coarse)').matches,
+      webgl2: hasWebGL2(),
+      dpr: maxDpr({ coarse: matchMedia('(pointer: coarse)').matches, w: innerWidth, h: innerHeight }),
     });
   }, []);
 
-  const fixed = { position: 'fixed', inset: 0, width: '100%', height: '100%' } as const;
   if (!support) return null;
-  if (!support.webgl2) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="./keyboard-fallback.webp" alt="The Phosphor One keyboard, backlit in phosphor green"
-        style={{ ...fixed, objectFit: 'contain', pointerEvents: 'none' }} />
-    );
-  }
+  if (!support.webgl2) return <Fallback />;
   return (
-    <Canvas
-      style={fixed}
-      dpr={support.coarse ? [1, 1.5] : [1, 2]}
-      camera={{ fov: 26, position: [0, 3.5, 4.3], near: 0.1, far: 50 }}
-      gl={{ antialias: true, alpha: true, toneMapping: NeutralToneMapping }}
-      onCreated={({ gl, scene, camera }) => {
-        camera.lookAt(0, 0, 0);
-        if (process.env.NODE_ENV !== 'production') Object.assign(window, { __phosphor: { gl, scene, camera } });
-      }}
-    >
-      <Studio />
-      {children}
-    </Canvas>
+    <GLBoundary>
+      <Canvas
+        style={FIXED}
+        dpr={[1, support.dpr]}
+        camera={{ fov: 26, position: [0, 3.5, 4.3], near: 0.1, far: 50 }}
+        gl={{ antialias: true, alpha: true, toneMapping: NeutralToneMapping }}
+        onCreated={({ gl, scene, camera }) => {
+          camera.lookAt(0, 0, 0);
+          if (process.env.NODE_ENV !== 'production') Object.assign(window, { __phosphor: { gl, scene, camera } });
+        }}
+      >
+        <Studio />
+        {children}
+      </Canvas>
+    </GLBoundary>
   );
 }

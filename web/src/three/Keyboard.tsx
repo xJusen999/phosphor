@@ -9,6 +9,7 @@ import {
 import { LAYOUT_60, type BuildConfig } from '@phosphor/shared';
 import { buildCase, PHOSPHOR } from './case';
 import { buildKeycapGeometry, capGroups, keyCentre } from './keycap';
+import { stepKey } from './keySpring';
 import { floorTexture, legendAtlas, legendFontReady, legendRect, plateTexture } from './legends';
 
 export { keyToInstance } from './keycap';
@@ -188,16 +189,11 @@ export function Keyboard({ pressed, heat, finish, explode }: Props) {
       grp.keys.forEach((k, i) => {
         const li = grp.layoutIndex[i];
         const target = pressed.has(k.code) ? TRAVEL : 0;
-        if (still) {
-          spring.y[li] = target;
-          spring.v[li] = 0;
-        } else {
-          // Stiff, slightly under-damped spring: a fast press with a small rebound.
-          spring.v[li] += (1400 * (target - spring.y[li]) - 46 * spring.v[li]) * dt;
-          spring.y[li] += spring.v[li] * dt;
-        }
-        const y = spring.y[li];
-        if (Math.abs(y) > 1e-3 || Math.abs(spring.v[li]) > 1e-3 || target !== 0) {
+        const s = stepKey(spring.y[li], spring.v[li], target, dt, still);
+        spring.y[li] = s.y;
+        spring.v[li] = s.v;
+        const y = s.y;
+        if (s.dirty) {
           const [x, z] = keyCentre(k);
           dummy.position.set(x, CAP_Y + y, z);
           dummy.updateMatrix();
