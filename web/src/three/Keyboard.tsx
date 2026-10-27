@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   BoxGeometry, Color, Group, InstancedBufferAttribute, InstancedMesh, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
   MeshStandardMaterial, Object3D, PlaneGeometry, type Texture,
 } from 'three';
-import { LAYOUT_60, type BuildConfig } from '@phosphor/shared';
+import { LAYOUT_60, type BuildConfig, type KeyDef } from '@phosphor/shared';
 import { buildCase, PHOSPHOR } from './case';
 import { buildKeycapGeometry, capGroups, keyCentre } from './keycap';
 import { stepKey } from './keySpring';
@@ -14,7 +14,18 @@ import { floorTexture, legendAtlas, legendFontReady, legendRect, plateTexture } 
 
 export { keyToInstance } from './keycap';
 
-type Props = { pressed: Set<string>; heat?: Float32Array; finish: BuildConfig; explode: number /* 0..1 */ };
+type Props = {
+  pressed: Set<string>;
+  heat?: Float32Array;
+  finish: BuildConfig;
+  /** 0..1; a ref lets the scroll rig drive it every frame without re-rendering. */
+  explode: number | { current: number };
+  /** A cap under the pointer was pressed ('down') or clicked ('click'), at client coordinates. */
+  onCap?: (key: KeyDef, type: 'down' | 'click', at: { x: number; y: number }) => void;
+};
+
+// DOM controls drawn over the canvas keep their clicks (R3F listens on the whole body).
+const OVER_DOM = 'a, button, input, textarea, select, label, summary, dialog';
 
 const CAP_Y = 5; // cap base above the plate top (mm)
 const TRAVEL = -4;
@@ -116,7 +127,7 @@ function build() {
 }
 
 /** The Phosphor One, built procedurally. Keys are addressed by KeyboardEvent.code (see keyToInstance). */
-export function Keyboard({ pressed, heat, finish, explode }: Props) {
+export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
   const parts = useMemo(build, []);
   const reduced = useRef(false);
   // Spring state per layout key: travel (mm) and velocity.
@@ -175,7 +186,7 @@ export function Keyboard({ pressed, heat, finish, explode }: Props) {
     const still = reduced.current;
     const breath = still ? 1 : 0.85 + 0.15 * Math.sin((state.clock.elapsedTime / BREATH_S) * Math.PI * 2);
 
-    const e = Math.min(Math.max(explode, 0), 1);
+    const e = Math.min(Math.max(typeof explode === 'number' ? explode : explode.current, 0), 1);
     parts.caps.position.y = e * EXPLODE.caps;
     parts.switches.position.y = e * EXPLODE.switches;
     parts.layers.plate.position.y = -1.5 + e * EXPLODE.plate;
@@ -211,5 +222,25 @@ export function Keyboard({ pressed, heat, finish, explode }: Props) {
     });
   });
 
-  return <primitive object={parts.root} />;
+  // The nearest hit only: a cap behind the shell or under a DOM control does not count.
+  const capAt = (e: ThreeEvent<MouseEvent>) => {
+    const hit = e.intersections[0];
+    const m = parts.meshes.findIndex((mesh) => mesh === hit?.object);
+    if (m < 0 || hit.instanceId === undefined || (e.nativeEvent.target as Element | null)?.closest?.(OVER_DOM)) return null;
+    return capGroups[m].keys[hit.instanceId];
+  };
+  const fire = (type: 'down' | 'click') => (e: ThreeEvent<MouseEvent>) => {
+    const k = capAt(e);
+    if (!k) return;
+    e.stopPropagation();
+    onCap?.(k, type, { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY });
+  };
+  const hover = (e: ThreeEvent<MouseEvent>) => {
+    document.body.style.cursor = capAt(e)?.fn ? 'pointer' : '';
+  };
+
+  return (
+    <primitive object={parts.root} onPointerDown={fire('down')} onClick={fire('click')} onPointerMove={hover}
+      onPointerOut={() => (document.body.style.cursor = '')} />
+  );
 }

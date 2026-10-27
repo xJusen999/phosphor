@@ -4,16 +4,8 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { fx, GL_LOST_EVENT, GL_READY_EVENT } from '../three/bus';
+import { KeyCap, Menu, NAV } from '../nav/Menu';
 import s from './Hero.module.css';
-
-const LINKS = [
-  { key: 'P', label: 'Info', href: '#brand' },
-  { key: 'S', label: 'Specs', href: '#specs' },
-  { key: '␣', label: 'Sound', href: '#sound', aria: 'Space' },
-  { key: 'B', label: 'Build', href: '#build' },
-  { key: 'T', label: 'Type', href: '#type' },
-  { key: 'O', label: 'Order', href: '#order' },
-];
 
 // Paints the split headline onto a canvas, glyph by glyph at the DOM's own positions, so the GL copy
 // lines up with the (then transparent) DOM text to the pixel.
@@ -76,16 +68,19 @@ export function Hero() {
       resizeTimer = window.setTimeout(paint, 120);
     };
 
-    const ctx = gsap.context(() => {
-      document.fonts.ready.then(() => {
+    const ctx = gsap.context(() => {}, root);
+    // ctx.add: the tweens made after the fonts load still belong to the context (reverted with it,
+    // and '[data-intro]' resolves inside the hero only).
+    document.fonts.ready.then(() =>
+      ctx.add(() => {
         if (!alive) return;
         split = SplitText.create(el, { type: 'words,chars', mask: 'words', wordsClass: 'hw', charsClass: 'hc' });
         el.style.visibility = 'visible';
         if (reduced) return whenGL();
         gsap.from(split.chars, { yPercent: 118, duration: 1.25, ease: 'expo.out', stagger: 0.024, delay: 0.15, onComplete: whenGL });
         gsap.fromTo('[data-intro]', { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'power3.out', stagger: 0.07, delay: 0.55 });
-      });
-    }, root);
+      }),
+    );
     addEventListener('resize', onResize);
     addEventListener(GL_READY_EVENT, handOff);
     addEventListener(GL_LOST_EVENT, takeBack);
@@ -111,16 +106,17 @@ export function Hero() {
           Phosphor
         </a>
         <nav aria-label="Sections" className={s.links} data-intro>
-          {LINKS.map((l) => (
-            <a key={l.href} href={l.href}>
-              <kbd aria-label={l.aria}>{l.key}</kbd>
-              {l.label}
+          {NAV.map((n) => (
+            <a key={n.id} href={`#${n.id}`}>
+              <KeyCap k={n.key} sr={n.sr} />
+              {n.label}
             </a>
           ))}
         </nav>
         <a className={s.cta} href="#order" data-intro>
           Pre-order — $219
         </a>
+        <Menu />
       </header>
 
       <section id="top" className={s.hero}>

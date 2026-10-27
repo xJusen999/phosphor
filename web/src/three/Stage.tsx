@@ -108,6 +108,10 @@ export function Stage({ children }: { children: ReactNode }) {
     <GLBoundary>
       <Canvas
         style={FIXED}
+        // Pointer events come from the whole page: the sections' DOM sits above the fixed canvas.
+        eventSource={document.body}
+        eventPrefix="client"
+        aria-hidden="true" // the DOM nav and the Shortcuts map carry what the 3D keys do
         dpr={[1, support.dpr]}
         camera={{ fov: 26, position: [0, 3.5, 4.3], near: 0.1, far: 50 }}
         // MSAA happens in Composite's scene target; the default framebuffer only gets a full-screen pass.

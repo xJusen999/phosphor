@@ -72,6 +72,7 @@ uniform float aspect;
 uniform float scroll;
 uniform float time;
 uniform float motion;
+uniform float smokeAmt;
 uniform vec3 paper;
 uniform vec3 ink;
 uniform vec3 smokeGrey;
@@ -117,7 +118,7 @@ void main() {
   vec3 glow = 1.0 - exp(-texture2D(tBloom, vUv).rgb * 0.9);
   float keyLight = clamp(glow.g * 2.2, 0.0, 1.0);
   vec3 smokeCol = mix(smokeGrey, smokeGreen, max(tint * 0.75, keyLight)) * (0.93 + 0.14 * lit);
-  float a = clamp(core * 0.56 + haze * 0.26, 0.0, 0.64);
+  float a = clamp(core * 0.56 + haze * 0.26, 0.0, 0.64) * smokeAmt;
   vec3 col = mix(paper, smokeCol, a);
 
   // Headline drawn as a texture, so the smoke drags it like butter.
@@ -181,7 +182,7 @@ export function Composite() {
       final: mat(finalFrag, {
         tScene: null, tBloom: null, tDye: null, tVel: null, tText: null,
         textRect: new Vector4(0, 0, 1, 1), textAlpha: 0, mouse: new Vector2(0.5, 0.5), dyeTexel: new Vector2(),
-        aspect: 1, scroll: 0, time: 0, motion: 1,
+        aspect: 1, scroll: 0, time: 0, motion: 1, smokeAmt: 1,
         paper: display('#f4f4f1'), ink: display('#0d0f0c'), smokeGrey: display('#787e78'), smokeGreen: display('#8eeaab'),
       }),
     }),
@@ -267,8 +268,10 @@ export function Composite() {
     }
     s.alpha += ((h ? fx.headlineGL : 0) - s.alpha) * Math.min(1, dt * 7);
 
-    // 4. Scroll velocity in screens per second, smoothed.
+    // 4. Scroll velocity in screens per second, smoothed. A jump of a screen or more in one frame is a
+    // section jump made behind the transition: no velocity, or the reveal would open on a full warp.
     const y = scrollY;
+    if (Math.abs(y - s.lastY) >= size.height) s.lastY = y;
     s.vel += ((y - s.lastY) / dt / size.height - s.vel) * 0.18;
     s.lastY = y;
 
@@ -283,6 +286,7 @@ export function Composite() {
     u.aspect.value = size.width / Math.max(size.height, 1);
     u.scroll.value = Math.max(-3, Math.min(3, s.vel));
     u.motion.value = s.reduced ? 0 : 1;
+    u.smokeAmt.value = Math.min(Math.max(1 - y / size.height, 0), 1); // the hero's smoke leaves with the hero
     if (!s.reduced) u.time.value = clock.elapsedTime;
     quad.material = m.final;
     gl.setRenderTarget(null);

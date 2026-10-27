@@ -1,0 +1,140 @@
+/* Positioned so the copy paints above the fixed canvas (an unpositioned block would sit under it). */
+.section {
+  position: relative;
+  display: flex;
+  min-height: 100svh;
+  padding: clamp(110px, 18vh, 180px) clamp(16px, 3.2vw, 44px) 64px;
+}
+
+.body {
+  width: min(34rem, 100%);
+}
+
+.section[data-side='right'] .body {
+  margin-left: auto;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.section kbd,
+.footer kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid rgba(13, 15, 12, 0.28);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--phosphor);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2.5rem, 5.4vw, 5.6rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.title :global(.sw-mask) {
+  padding: 0.06em 0.06em 0.16em;
+  margin: -0.06em -0.06em -0.16em;
+}
+
+.copy {
+  max-width: 34ch;
+  margin: 24px 0 0;
+  font-size: clamp(15px, 1.15vw, 17px);
+  line-height: 1.5;
+  color: #4a5047;
+}
+
+.waitlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.waitlist input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 14px 18px;
+  border: 1px solid rgba(13, 15, 12, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.waitlist button,
+.keys {
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.waitlist input:focus-visible,
+.waitlist button:focus-visible,
+.keys:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--phosphor);
+}
+
+.footer {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 28px clamp(16px, 3.2vw, 44px);
+  border-top: 1px solid rgba(13, 15, 12, 0.12);
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+}
+
+/* Small screens: the copy takes the top of the screen, the keyboard sits below it. */
+@media (max-width: 860px) {
+  .section[data-side] .body {
+    margin-left: 0;
+  }
+}

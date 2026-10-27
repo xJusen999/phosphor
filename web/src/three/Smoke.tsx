@@ -100,6 +100,8 @@ export function Smoke({ pressed, keyboard }: Props) {
   };
 
   useFrame(({ camera }, delta) => {
+    // The smoke belongs to the hero: once it has scrolled away the composite has faded it out, so stop simulating.
+    if (st.current.warmed && scrollY >= size.height) return;
     const s = st.current;
     fluid.resize(size.width, size.height);
     const aspect = size.width / Math.max(size.height, 1);
