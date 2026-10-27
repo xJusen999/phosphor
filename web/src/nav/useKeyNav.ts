@@ -34,8 +34,10 @@ export function useKeyNav(typeTestActive = false) {
       press(e.code, true);
       if (e.repeat || document.querySelector('dialog[open]')) return; // open dialogs own the keys (Esc closes them)
       const t = e.target as HTMLElement;
+      // "?" by the character it types, not by key position: on a Spanish layout it is Shift+Minus, not Shift+Slash.
+      const code = e.key === '?' ? 'Slash' : e.code === 'Slash' ? '' : e.code;
       const to = shouldHandleKey({
-        code: e.code, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey,
+        code, shiftKey: e.shiftKey || e.key === '?', ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey,
         targetTag: t.tagName ?? '', targetEditable: !!t.isContentEditable, typeTestActive: testing.current,
       });
       if (!to) return;

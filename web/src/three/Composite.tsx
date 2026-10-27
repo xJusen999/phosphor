@@ -209,6 +209,7 @@ export function Composite() {
     st.current.lastY = scrollY;
     const lost = () => markGLLost();
     gl.domElement.addEventListener('webglcontextlost', lost);
+    if (process.env.NODE_ENV !== 'production') Object.assign(window, { __composite: m.final.uniforms });
     const autoClear = gl.autoClear;
     gl.autoClear = false;
     return () => {

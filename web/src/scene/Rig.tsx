@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { poseAt, scrollProgress, SECTION_ORDER } from './poses';
+import { fitPose, narrowness, poseAt, scrollProgress, SECTION_ORDER } from './poses';
 
 type Props = { group: RefObject<Group | null>; explode: { current: number }; children: ReactNode };
 
@@ -24,10 +24,11 @@ export function Rig({ group, explode, children }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  useFrame(() => {
+  useFrame(({ size }) => {
     const g = group.current;
     if (!g) return;
-    const p = poseAt(scrollProgress(tops.current, scrollY));
+    const progress = scrollProgress(tops.current, scrollY);
+    const p = fitPose(poseAt(progress), narrowness(size.width / Math.max(size.height, 1), progress));
     g.position.set(...p.pos);
     g.rotation.set(...p.rot);
     g.scale.setScalar(p.scale);

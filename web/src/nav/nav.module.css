@@ -202,6 +202,11 @@
 }
 
 .sheet {
+  /* Lives inside the top bar's markup: reset what the bar sets (mono, uppercase, tracking). */
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: normal;
+  text-transform: none;
   width: 100vw;
   max-width: none;
   height: 100svh;
@@ -264,7 +269,7 @@
   background: var(--phosphor);
 }
 
-.sheetCta {
+.sheet .sheetCta {
   align-self: stretch;
   padding: 16px;
   border-radius: 999px;

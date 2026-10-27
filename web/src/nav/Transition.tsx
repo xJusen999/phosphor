@@ -104,7 +104,7 @@ export function Transition() {
         const t = Math.min(Math.max((p - (Math.hypot(x - from.x, y - from.y) / max) * (1 - SPREAD)) / SPREAD, 0), 1);
         if (t <= 0) continue;
         const r = full * (1 - (1 - t) ** 3);
-        const path = t < 0.55 ? lit : ink;
+        const path = t < 0.35 ? lit : ink; // a thin lit wave front, the rest ink
         path.moveTo(x + r, y);
         path.arc(x, y, r, 0, Math.PI * 2);
       }

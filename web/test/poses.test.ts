@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { poseAt, poses, scrollProgress, SECTION_ORDER } from '../src/scene/poses';
+import { fitPose, narrowness, poseAt, poses, scrollProgress, SECTION_ORDER } from '../src/scene/poses';
 
 describe('poseAt', () => {
   it('0 is the top pose', () => {
@@ -39,5 +39,23 @@ describe('scrollProgress', () => {
     expect(scrollProgress(tops, 200)).toBe(0.75);
     expect(scrollProgress(tops, -50)).toBe(0);
     expect(scrollProgress(tops, 900)).toBe(1);
+  });
+});
+
+describe('fitPose (portrait screens)', () => {
+  it('leaves the pose alone at weight 0', () => {
+    expect(fitPose(poses.brand, 0)).toEqual(poses.brand);
+  });
+  it('centres the keyboard and shrinks it at weight 1, keeping rotation and explode', () => {
+    const p = fitPose(poses.specs, 1);
+    expect(p.pos[0]).toBe(0);
+    expect(p.scale).toBeLessThan(poses.specs.scale);
+    expect(p.rot).toEqual(poses.specs.rot);
+    expect(p.explode).toBe(1);
+  });
+  it('narrowness: 0 on landscape, 1 on a phone, and never touches the hero', () => {
+    expect(narrowness(16 / 9, 0.5)).toBe(0);
+    expect(narrowness(375 / 812, 0.5)).toBe(1);
+    expect(narrowness(375 / 812, 0)).toBe(0);
   });
 });

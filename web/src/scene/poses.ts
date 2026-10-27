@@ -9,12 +9,12 @@ export const SECTION_ORDER: SectionId[] = ['top', 'brand', 'specs', 'sound', 'bu
 /** Where the fixed keyboard sits while each section is on screen (scene units, radians; explode 0..1). */
 export const poses: Record<SectionId, Pose> = {
   top: { pos: [0.42, -0.4, 0.1], rot: [0, -0.32, 0], scale: 0.78, explode: 0 }, // the approved hero
-  brand: { pos: [0.62, -0.1, -0.1], rot: [0.18, -0.62, 0.06], scale: 0.66, explode: 0 },
-  specs: { pos: [0.5, 0.05, -0.05], rot: [0.35, -0.42, 0], scale: 0.6, explode: 1 },
-  sound: { pos: [0.25, -0.75, 0.75], rot: [0.12, -0.18, 0], scale: 1.45, explode: 0 },
+  brand: { pos: [0.62, -0.1, -0.1], rot: [0.18, -0.62, 0.06], scale: 0.7, explode: 0 },
+  specs: { pos: [-0.85, -0.35, 0.05], rot: [0.32, 0.5, 0], scale: 0.6, explode: 1 },
+  sound: { pos: [0.7, -1.05, 0.8], rot: [0.14, -0.3, 0], scale: 1.45, explode: 0 },
   build: { pos: [0.6, -0.15, 0], rot: [0.1, 0.42, 0], scale: 0.7, explode: 0 },
-  type: { pos: [0, -0.25, 0.45], rot: [0.62, 0, 0], scale: 0.84, explode: 0 },
-  order: { pos: [-0.62, -0.25, 0], rot: [0.08, 0.5, -0.04], scale: 0.62, explode: 0 },
+  type: { pos: [0.4, -0.3, 0.6], rot: [0.62, 0, 0], scale: 0.7, explode: 0 },
+  order: { pos: [-0.95, -0.3, 0.05], rot: [0.08, 0.5, -0.04], scale: 0.56, explode: 0 },
 };
 
 const mix = (a: number, b: number, t: number) => a * (1 - t) + b * t; // exact at both ends
@@ -40,4 +40,24 @@ export function scrollProgress(tops: number[], y: number): number {
   if (y <= tops[0]) return 0;
   for (let i = 0; i < last; i++) if (y < tops[i + 1]) return (i + (y - tops[i]) / (tops[i + 1] - tops[i])) / last;
   return 1;
+}
+
+// Portrait screens: the copy takes the top, the keyboard sits centred and smaller in the lower half.
+const PORTRAIT = { y: -0.5, z: 0.45, scale: 0.5 };
+
+/** Blends a pose toward its portrait framing by `w` (0..1). */
+export function fitPose(p: Pose, w: number): Pose {
+  if (w <= 0) return p;
+  return {
+    pos: [mix(p.pos[0], 0, w), mix(p.pos[1], PORTRAIT.y, w), mix(p.pos[2], PORTRAIT.z, w)],
+    rot: p.rot,
+    scale: p.scale * mix(1, PORTRAIT.scale, w),
+    explode: p.explode,
+  };
+}
+
+/** How much of the portrait framing applies: by how portrait the screen is, and never in the hero (its pose is approved as is). */
+export function narrowness(aspect: number, progress: number) {
+  const clamp = (v: number) => Math.min(Math.max(v, 0), 1);
+  return clamp((1 - aspect) / 0.4) * clamp(progress * (SECTION_ORDER.length - 1));
 }
