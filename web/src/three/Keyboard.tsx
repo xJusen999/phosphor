@@ -10,6 +10,7 @@ import { LAYOUT_60, type BuildConfig, type KeyDef } from '@phosphor/shared';
 import { buildCase, PHOSPHOR } from './case';
 import { buildKeycapGeometry, capGroups, keyCentre } from './keycap';
 import { stepKey } from './keySpring';
+import { isRealClick } from './clickGuard';
 import { floorTexture, legendAtlas, legendFontReady, legendRect, plateTexture } from './legends';
 
 export { keyToInstance } from './keycap';
@@ -231,7 +232,7 @@ export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
   };
   const fire = (type: 'down' | 'click') => (e: ThreeEvent<MouseEvent>) => {
     const k = capAt(e);
-    if (!k) return;
+    if (!k || (type === 'click' && !isRealClick(e.delta, getSelection()?.toString() ?? ''))) return;
     e.stopPropagation();
     onCap?.(k, type, { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY });
   };
