@@ -23,7 +23,3 @@ export interface DataClient {
   submitScore(s: NewScore): Promise<{ rank: number }>;
   topScores(): Promise<Score[]>;
 }
-
-// Same ordering as the API: fastest first, then most accurate, then oldest.
-export const byRank = (a: Score, b: Score) =>
-  b.wpm - a.wpm || b.accuracy - a.accuracy || a.at.localeCompare(b.at);

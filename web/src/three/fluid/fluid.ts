@@ -6,7 +6,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import * as S from './shaders';
 
 /** Velocity grid height (short side): 128 on touch / small screens, 256 otherwise. The dye runs at twice that. */
-export const simResolution = ({ coarse }: { coarse: boolean; dpr: number }) => (coarse ? 128 : 256);
+export const simResolution = ({ coarse }: { coarse: boolean }) => (coarse ? 128 : 256);
 
 /** Brush radius (fraction of viewport height): ~90 px / viewport width, so it reads alike on any screen; clamped. */
 export function splatRadius(viewportW: number) {

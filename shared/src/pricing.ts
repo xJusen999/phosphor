@@ -6,6 +6,9 @@ export type BuildConfig = {
 
 type Opt = { label: string; price: number };
 
+/** The option groups, in display order. */
+export const GROUPS = ['caseFinish', 'keycaps', 'switchType'] as const satisfies readonly (keyof BuildConfig)[];
+
 export const OPTIONS = {
   base: 219,
   caseFinish: {
@@ -27,7 +30,7 @@ export const OPTIONS = {
 
 export function priceOf(c: BuildConfig): number {
   let total: number = OPTIONS.base;
-  for (const group of ['caseFinish', 'keycaps', 'switchType'] as const) {
+  for (const group of GROUPS) {
     const opts: Record<string, Opt> = OPTIONS[group];
     const id = c[group];
     if (!Object.prototype.hasOwnProperty.call(opts, id)) throw new Error('unknown option');

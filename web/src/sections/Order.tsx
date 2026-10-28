@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { isEmail, OPTIONS, priceOf, type BuildConfig } from '@phosphor/shared';
+import { GROUPS, isEmail, OPTIONS, priceOf, type BuildConfig } from '@phosphor/shared';
 import { build, offlineNote, order } from '../content/copy';
 import { FULL_VERSION_URL } from '../data/fullVersion';
 import { useDataClient, useRequest, type Req } from '../data/useData';
@@ -11,7 +11,6 @@ import { extra, Price } from './Build';
 import shell from './Shells.module.css';
 import s from './Product.module.css';
 
-const GROUPS: (keyof BuildConfig)[] = ['caseFinish', 'keycaps', 'switchType'];
 // Store ids are UUIDs or auto ids: show the last eight characters, like a receipt number.
 const shortId = (id: string) => `PH-${id.replace(/[^a-z0-9]/gi, '').slice(-8).toUpperCase()}`;
 

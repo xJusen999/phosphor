@@ -54,7 +54,7 @@ export function Smoke({ pressed, keyboard }: Props) {
   const fluid = useMemo(() => {
     const coarse = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 768;
     return new Fluid(gl, {
-      res: simResolution({ coarse, dpr: devicePixelRatio }),
+      res: simResolution({ coarse }),
       pressureIterations: coarse ? 8 : 20,
       curl: 28,
       velocityDissipation: 0.5,

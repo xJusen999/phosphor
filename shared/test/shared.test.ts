@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  LAYOUT_60, shouldHandleKey, priceOf, isEmail, cleanName, computeWpm, accuracy,
+  LAYOUT_60, shouldHandleKey, priceOf, isEmail, cleanName, computeWpm, accuracy, byRank, GROUPS, OPTIONS,
 } from '../src';
 
 const ev = (o: Partial<Parameters<typeof shouldHandleKey>[0]> & { code: string }) => ({
@@ -58,6 +58,10 @@ describe('pricing', () => {
     expect(priceOf({ caseFinish: 'frost', keycaps: 'phosphor', switchType: 'linear' })).toBe(219);
     expect(priceOf({ caseFinish: 'clear', keycaps: 'blank', switchType: 'clicky' })).toBe(284);
   });
+  it('GROUPS lists every option group, in display order', () => {
+    expect(GROUPS).toEqual(['caseFinish', 'keycaps', 'switchType']);
+    expect(Object.keys(OPTIONS).filter((k) => k !== 'base')).toEqual([...GROUPS]);
+  });
   it('throws on unknown option', () => {
     expect(() => priceOf({ caseFinish: 'gold' } as any)).toThrow('unknown option');
   });
@@ -84,5 +88,13 @@ describe('wpm', () => {
   it('accuracy', () => {
     expect(accuracy(0, 0)).toBe(1);
     expect(accuracy(45, 50)).toBe(0.9);
+  });
+});
+
+describe('byRank', () => {
+  it('fastest first, then most accurate, then oldest', () => {
+    const s = (wpm: number, accuracy: number, at: string) => ({ name: at, wpm, accuracy, at });
+    const sorted = [s(80, 0.9, 'c'), s(90, 0.8, 'd'), s(80, 0.95, 'e'), s(80, 0.9, 'a')].sort(byRank);
+    expect(sorted.map((x) => x.at)).toEqual(['d', 'e', 'a', 'c']);
   });
 });

@@ -28,7 +28,7 @@ export const specs = {
     { id: 'caps', n: '01', name: 'Keycaps', detail: 'PBT, double-shot legends with light windows, OEM profile' },
     { id: 'switches', n: '02', name: 'Switches', detail: 'Linear, tactile or clicky. 5-pin, swap them without solder' },
     { id: 'plate', n: '03', name: 'Plate', detail: 'Frosted polycarbonate, 1.5 mm, spreads the light evenly' },
-    { id: 'pcb', n: '04', name: 'PCB', detail: '1.6 mm, 61 south-facing LEDs, all one green' },
+    { id: 'pcb', n: '04', name: 'PCB', detail: '1.6 mm, 61 north-facing LEDs, all one green' },
     { id: 'gasket', n: '05', name: 'Gasket', detail: 'Poron foam, 2.4 mm, keeps the stack off the case' },
     { id: 'case', n: '06', name: 'Case', detail: 'Bead-blasted aluminium 6063, 4.4° typing angle' },
   ],
@@ -41,8 +41,6 @@ export const specs = {
   ],
   concept: 'Concept specs: invented, plausible values for a product that does not exist.',
 } as const;
-
-export type LayerId = (typeof specs.layers)[number]['id'];
 
 export const sound = {
   title: 'Hear it before you buy it.',

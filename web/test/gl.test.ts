@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canRenderGL } from '../src/three/quality';
-import { fx, GL_LOST_EVENT, markGLLost } from '../src/three/bus';
+import { fx, GL_LOST_EVENT, markGLLost, releaseGL } from '../src/three/bus';
 
 const fakeGL = (exts: string[]) => ({ getExtension: (name: string) => (exts.includes(name) ? {} : null) });
 
@@ -31,5 +31,17 @@ describe('markGLLost', () => {
     expect(fx.headlineGL).toBe(0);
     expect(heard).toBe(1);
     expect(fx.glFailed).toBe(true); // a loader mounted after the event still knows not to wait
+  });
+});
+
+describe('releaseGL (the composite unmounts: StrictMode, HMR)', () => {
+  it('hands the headline back without marking GL as failed', () => {
+    fx.glFailed = false;
+    fx.glReady = true;
+    fx.headlineGL = 1;
+    releaseGL();
+    expect(fx.glReady).toBe(false);
+    expect(fx.headlineGL).toBe(0);
+    expect(fx.glFailed).toBe(false); // a remount must not lift the loader early
   });
 });

@@ -40,7 +40,6 @@ export const selectSwitch = (p: SwitchProfile) => {
   selected = p;
   if (ctx) loadBank(ctx, p);
 };
-export const isMuted = () => muted;
 export const setMuted = (m: boolean) => void (muted = m);
 
 /**

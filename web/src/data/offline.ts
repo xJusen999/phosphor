@@ -1,5 +1,5 @@
-import { priceOf } from '@phosphor/shared';
-import { byRank, type DataClient, type Score } from './client';
+import { byRank, priceOf } from '@phosphor/shared';
+import type { DataClient, Score } from './client';
 
 // In-memory only: lives until the page is closed. Never throws.
 export function createOffline(): DataClient {

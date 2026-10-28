@@ -3,13 +3,11 @@ import { simResolution, splatRadius } from '../src/three/fluid/fluid';
 
 describe('simResolution', () => {
   it('is 128 on coarse pointers / small screens', () => {
-    expect(simResolution({ coarse: true, dpr: 1 })).toBe(128);
-    expect(simResolution({ coarse: true, dpr: 3 })).toBe(128);
+    expect(simResolution({ coarse: true })).toBe(128);
   });
 
   it('is 256 otherwise', () => {
-    expect(simResolution({ coarse: false, dpr: 1 })).toBe(256);
-    expect(simResolution({ coarse: false, dpr: 2 })).toBe(256);
+    expect(simResolution({ coarse: false })).toBe(256);
   });
 });
 

@@ -14,8 +14,6 @@ import { isRealClick } from './clickGuard';
 import { fx } from './bus';
 import { floorTexture, legendAtlas, legendFontReady, legendRect, plateTexture } from './legends';
 
-export { keyToInstance } from './keycap';
-
 type Props = {
   pressed: Set<string>;
   heat?: Float32Array;
@@ -146,7 +144,7 @@ function build() {
   return { root, kase, caps, switches, layers, anchors, meshes, uniforms, capMat };
 }
 
-/** The Phosphor One, built procedurally. Keys are addressed by KeyboardEvent.code (see keyToInstance). */
+/** The Phosphor One, built procedurally. Keys are addressed by KeyboardEvent.code (see keyToInstance in keycap.ts). */
 export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
   const parts = useMemo(build, []);
   const reduced = useRef(false);

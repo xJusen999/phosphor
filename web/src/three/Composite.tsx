@@ -7,7 +7,7 @@ import {
   Vector2, Vector4, WebGLRenderTarget, type Texture,
 } from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import { fx, GL_READY_EVENT, markGLLost } from './bus';
+import { fx, GL_READY_EVENT, markGLLost, releaseGL } from './bus';
 
 const BLOOM_LEVELS = 5;
 
@@ -220,7 +220,7 @@ export function Composite() {
       st.current.text?.dispose();
       Object.values(m).forEach((x) => x.dispose());
       gl.domElement.removeEventListener('webglcontextlost', lost);
-      markGLLost();
+      releaseGL();
     };
   }, [gl, m]);
 

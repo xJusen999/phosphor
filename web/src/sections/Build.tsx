@@ -1,6 +1,6 @@
 'use client';
 
-import { OPTIONS, priceOf, type BuildConfig } from '@phosphor/shared';
+import { GROUPS, OPTIONS, priceOf, type BuildConfig } from '@phosphor/shared';
 import { build } from '../content/copy';
 import { ensureAudio, playSwitch } from '../audio/switches';
 import { useBuild } from '../state/build';
@@ -9,7 +9,6 @@ import shell from './Shells.module.css';
 import s from './Product.module.css';
 
 type Group = keyof BuildConfig;
-const GROUPS: Group[] = ['caseFinish', 'keycaps', 'switchType'];
 
 /** A dollar amount whose digits roll to the new value (each digit is a 0–9 strip). */
 export function Price({ value, live = false, className }: { value: number; live?: boolean; className?: string }) {
@@ -68,7 +67,9 @@ export function Build() {
               <div className={s.options}>
                 {Object.entries(opts).map(([id, o]) => (
                   <button key={id} type="button" className={s.option} aria-pressed={config[group] === id}
-                    data-group={group} data-id={id} onClick={() => pick(group, id as BuildConfig[typeof group])}>
+                    data-group={group} data-id={id}
+                    // Switch picks play their own sound; data-switch keeps the key-sound layer from playing the old one first.
+                    data-switch={group === 'switchType' ? '' : undefined} onClick={() => pick(group, id as BuildConfig[typeof group])}>
                     <span className={s.glow} aria-hidden="true"><i /><i /><i /></span>
                     <span className={s.optTop}>
                       {group !== 'switchType' && <span className={s.swatch} aria-hidden="true" />}
