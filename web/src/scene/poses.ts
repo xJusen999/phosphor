@@ -10,7 +10,7 @@ export const SECTION_ORDER: SectionId[] = ['top', 'brand', 'specs', 'sound', 'bu
 export const poses: Record<SectionId, Pose> = {
   top: { pos: [0.42, -0.4, 0.1], rot: [0, -0.32, 0], scale: 0.78, explode: 0 }, // the approved hero
   brand: { pos: [0.62, -0.1, -0.1], rot: [0.18, -0.62, 0.06], scale: 0.7, explode: 0 },
-  specs: { pos: [-0.85, -0.35, 0.05], rot: [0.32, 0.5, 0], scale: 0.6, explode: 1 },
+  specs: { pos: [-0.7, -0.15, 0.05], rot: [-0.32, -0.42, 0], scale: 0.6, explode: 1 },
   sound: { pos: [0.7, -1.05, 0.8], rot: [0.14, -0.3, 0], scale: 1.45, explode: 0 },
   build: { pos: [0.6, -0.15, 0], rot: [0.1, 0.42, 0], scale: 0.7, explode: 0 },
   type: { pos: [0.4, -0.3, 0.6], rot: [0.62, 0, 0], scale: 0.7, explode: 0 },

@@ -7,21 +7,21 @@ import { SplitText } from 'gsap/SplitText';
 import type { SectionId } from '@phosphor/shared';
 import { KeyCap, NAV } from '../nav/Menu';
 import { openShortcuts } from '../nav/Shortcuts';
+import { Brand } from './Brand';
+import { Specs } from './Specs';
+import { Sound } from './Sound';
 import s from './Shells.module.css';
 
-// Placeholder sections: Tasks 7–8 replace each body with the real one. `side` is where the copy sits,
+// Placeholder sections: Task 8 replaces each body with the real one. `side` is where the copy sits,
 // opposite the keyboard's pose for that section (scene/poses.ts).
 const SHELLS: { id: Exclude<SectionId, 'top'>; side: 'left' | 'right' | 'top'; title: string; copy: string }[] = [
-  { id: 'brand', side: 'left', title: 'Built for people who type all day.', copy: 'Why Phosphor exists, the three rules we design by, and the people behind the board.' },
-  { id: 'specs', side: 'right', title: 'Six layers, nothing hidden.', copy: 'Scroll and the board comes apart: caps, switches, plate, PCB, gasket, case.' },
-  { id: 'sound', side: 'top', title: 'Hear it before you buy it.', copy: 'Linear, tactile or clicky. Three switches, three voices, one keyboard.' },
   { id: 'build', side: 'left', title: 'Yours, down to the switch.', copy: 'Case finish, keycaps and switches, with the price updating as you choose.' },
   { id: 'type', side: 'top', title: 'Thirty seconds. Go.', copy: 'A real typing test on the board. Your hottest keys light up; your best score stays.' },
   { id: 'order', side: 'right', title: 'Ships in spring.', copy: 'Pre-order the Phosphor One for $219, or join the waitlist and hear first.' },
 ];
 
-/** Section shells after the hero, with a masked heading reveal on scroll. */
-export function Shells() {
+/** Every section after the hero (Brand, Specs, Sound, then the shells), with a masked heading reveal on scroll. */
+export function Shells({ tap }: { tap: (code: string) => void }) {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,6 +49,9 @@ export function Shells() {
 
   return (
     <div ref={root}>
+      <Brand />
+      <Specs />
+      <Sound tap={tap} />
       {SHELLS.map((sec) => {
         const nav = NAV.find((n) => n.id === sec.id)!;
         return (

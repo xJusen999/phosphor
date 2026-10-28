@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   BoxGeometry, Color, Group, InstancedBufferAttribute, InstancedMesh, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
-  MeshStandardMaterial, Object3D, PlaneGeometry, type Texture,
+  MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Texture,
 } from 'three';
 import { LAYOUT_60, type BuildConfig, type KeyDef } from '@phosphor/shared';
-import { buildCase, PHOSPHOR } from './case';
-import { buildKeycapGeometry, capGroups, keyCentre } from './keycap';
+import { buildCase, CASE, DECK_SIZE, LAYER_Y, PHOSPHOR } from './case';
+import { buildKeycapGeometry, capGroups, keyCentre, UNIT } from './keycap';
 import { stepKey } from './keySpring';
 import { isRealClick } from './clickGuard';
+import { fx } from './bus';
 import { floorTexture, legendAtlas, legendFontReady, legendRect, plateTexture } from './legends';
 
 export { keyToInstance } from './keycap';
@@ -33,8 +34,9 @@ const TRAVEL = -4;
 const BASE_GLOW = 1.15;
 const FN_GLOW = 2.6;
 const BREATH_S = 2.4;
-// Explode offsets per layer (mm, up): caps, switches, plate, PCB, gasket; strip goes down.
-const EXPLODE = { caps: 78, switches: 46, plate: 26, pcb: 12, gasket: 4, strip: -10 };
+// Explode offsets per layer (mm, up): caps, switches, plate, PCB, gasket; strip goes down. Evenly spread so
+// every layer clears the case rim and gets its own leader line in Specs.
+const EXPLODE = { caps: 104, switches: 74, plate: 50, pcb: 32, gasket: 16, strip: -10 };
 
 const CASE_FINISH: Record<BuildConfig['caseFinish'], Partial<MeshPhysicalMaterial>> = {
   frost: { color: new Color('#eeeeea'), roughness: 0.34, metalness: 0, opacity: 1, transparent: false },
@@ -124,7 +126,23 @@ function build() {
   root.scale.setScalar(0.01); // mm → scene units
   const layer = (name: string) => kase.getObjectByName(name)!;
   const layers = { plate: layer('plate'), pcb: layer('pcb'), gasket: layer('gasket'), strip: layer('strip') };
-  return { root, kase, caps, switches, layers, meshes, uniforms, capMat };
+
+  // Leader-line anchors on each layer's right edge, in Specs' order (caps → case); they ride the explode.
+  const edge = DECK_SIZE.w / 2;
+  const anchors = ([
+    [caps, 7.5 * UNIT - 4, CAP_Y + 9],
+    [switches, edge - 8, 4.6],
+    [layers.plate, edge, 1.5],
+    [layers.pcb, edge, 1.6],
+    [layers.gasket, edge, 2.4],
+    [kase.getObjectByName('shell')!, CASE.w / 2, 16],
+  ] as const).map(([parent, x, y]) => {
+    const a = new Object3D();
+    a.position.set(x, y, 0);
+    parent.add(a);
+    return a;
+  });
+  return { root, kase, caps, switches, layers, anchors, meshes, uniforms, capMat };
 }
 
 /** The Phosphor One, built procedurally. Keys are addressed by KeyboardEvent.code (see keyToInstance). */
@@ -181,6 +199,8 @@ export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
 
   const dummy = useMemo(() => new Object3D(), []);
   const color = useMemo(() => new Color(), []);
+  const anchor = useMemo(() => new Vector3(), []);
+  const leaderPts = useMemo(() => new Float32Array(parts.anchors.length * 2), [parts]);
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 30);
@@ -190,10 +210,19 @@ export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
     const e = Math.min(Math.max(typeof explode === 'number' ? explode : explode.current, 0), 1);
     parts.caps.position.y = e * EXPLODE.caps;
     parts.switches.position.y = e * EXPLODE.switches;
-    parts.layers.plate.position.y = -1.5 + e * EXPLODE.plate;
-    parts.layers.pcb.position.y = -6.6 + e * EXPLODE.pcb;
-    parts.layers.gasket.position.y = -9 + e * EXPLODE.gasket;
+    parts.layers.plate.position.y = LAYER_Y.plate + e * EXPLODE.plate;
+    parts.layers.pcb.position.y = LAYER_Y.pcb + e * EXPLODE.pcb;
+    parts.layers.gasket.position.y = LAYER_Y.gasket + e * EXPLODE.gasket;
     parts.layers.strip.position.y = e * EXPLODE.strip;
+
+    if (fx.leaders) {
+      parts.anchors.forEach((a, i) => {
+        a.getWorldPosition(anchor).project(state.camera);
+        leaderPts[i * 2] = ((anchor.x + 1) / 2) * state.size.width;
+        leaderPts[i * 2 + 1] = ((1 - anchor.y) / 2) * state.size.height;
+      });
+      fx.leaders(leaderPts, e);
+    }
 
     parts.meshes.forEach((mesh, m) => {
       const grp = capGroups[m];

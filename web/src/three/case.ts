@@ -12,6 +12,9 @@ const BEVEL = 2;
 // The internal stack (gasket, PCB, plate, switches, caps) follows the typing angle; plate top 4 mm under the rim.
 export const DECK_TILT = Math.atan((CASE.rear - CASE.front) / CASE.d);
 export const DECK_Y = (CASE.front + CASE.rear) / 2 - 4;
+/** Rest height of each deck layer's base (mm, deck space) and the plate/PCB/gasket outline. */
+export const LAYER_Y = { plate: -1.5, pcb: -6.6, gasket: -9 };
+export const DECK_SIZE = { w: CASE.w - 2 * CASE.wall - 5, d: CASE.d - 2 * CASE.wall - 1.5 };
 
 function rounded<T extends Path>(w: number, d: number, r: number, into: T): T {
   const x = -w / 2, y = -d / 2;
@@ -86,18 +89,18 @@ export function buildCase(): Group {
   deck.position.y = DECK_Y;
   deck.rotation.x = DECK_TILT;
 
-  const pw = CASE.w - 2 * CASE.wall - 5, pd = CASE.d - 2 * CASE.wall - 1.5;
+  const { w: pw, d: pd } = DECK_SIZE;
   const plate = new Mesh(slab(pw, pd, 1.5, 3), new MeshStandardMaterial({
     color: '#16241a', roughness: 0.55, metalness: 0.2, emissive: PHOSPHOR, emissiveIntensity: 1,
   }));
   plate.name = 'plate';
-  plate.position.y = -1.5;
+  plate.position.y = LAYER_Y.plate;
   const pcb = new Mesh(slab(pw, pd, 1.6, 3), new MeshStandardMaterial({ color: '#e4e7e1', roughness: 0.7 }));
   pcb.name = 'pcb';
-  pcb.position.y = -6.6;
+  pcb.position.y = LAYER_Y.pcb;
   const gasket = new Mesh(slab(pw, pd, 2.4, 3), new MeshStandardMaterial({ color: '#c9ccc6', roughness: 0.95 }));
   gasket.name = 'gasket';
-  gasket.position.y = -9;
+  gasket.position.y = LAYER_Y.gasket;
   deck.add(gasket, pcb, plate);
 
   root.add(floor, strip, shell, deck);

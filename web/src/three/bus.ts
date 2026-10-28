@@ -13,6 +13,13 @@ export const fx = {
   headlineGL: 0,
   /** True once the composite has drawn a frame: the hero only hands the headline to GL after that. */
   glReady: false,
+  /**
+   * Specs leader lines: every frame the keyboard projects one anchor per layer (caps, switches, plate, PCB,
+   * gasket, case) to CSS px and passes them as [x0, y0, x1, y1, …] with the explode amount (0..1).
+   */
+  leaders: null as null | ((pts: Float32Array, explode: number) => void),
+  /** Sound section: 1 while a switch card is hovered, and the rig zooms the keyboard in a little. */
+  focus: 0,
 };
 
 export const GL_READY_EVENT = 'phosphor:gl-ready';

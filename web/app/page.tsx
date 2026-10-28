@@ -20,7 +20,7 @@ const FINISH: BuildConfig = { caseFinish: 'frost', keycaps: 'phosphor', switchTy
 export default function Home() {
   const keyboard = useRef<Group>(null);
   const explode = useRef(0);
-  const { pressed, pointerPress } = useKeyNav();
+  const { pressed, pointerPress, tap } = useKeyNav();
   useEffect(startLenis, []);
 
   return (
@@ -41,7 +41,7 @@ export default function Home() {
         <Composite />
       </Stage>
       <Hero />
-      <Shells />
+      <Shells tap={tap} />
       <Transition />
       <Shortcuts />
     </main>

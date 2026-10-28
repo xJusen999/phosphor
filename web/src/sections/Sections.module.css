@@ -1,0 +1,461 @@
+/* Brand, Specs and Sound: built on Shells.module.css (section, body, eyebrow, title, copy). */
+
+.wide {
+  width: min(40rem, 100%);
+}
+
+.lead {
+  max-width: 30ch;
+  margin: 30px 0 0;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.num {
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #4a5047;
+}
+
+.kicker {
+  margin: 64px 0 18px;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.fine {
+  margin: 18px 0 0;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7168;
+}
+
+/* Brand: three principles and the team */
+.principles {
+  display: grid;
+  gap: 0;
+  margin: 56px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.principles li {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr;
+  column-gap: 12px;
+  padding: 20px 0 22px;
+  border-top: 1px solid rgba(13, 15, 12, 0.14);
+}
+
+.principles h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.principles p {
+  grid-column: 2;
+  max-width: 44ch;
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #4a5047;
+}
+
+.principles .num {
+  padding-top: 0.45em;
+}
+
+.team {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team li {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.team p {
+  margin: 0;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  padding: 7px;
+  border-radius: 14px;
+  background: var(--ink);
+}
+
+.avatar circle[data-v='0'] {
+  fill: rgba(244, 244, 241, 0.12);
+}
+
+.avatar circle[data-v='1'] {
+  fill: rgba(57, 255, 110, 0.55);
+}
+
+.avatar circle[data-v='2'] {
+  fill: var(--white-hot);
+  filter: drop-shadow(0 0 0.35px var(--phosphor));
+}
+
+.name {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.role {
+  margin-top: 4px !important;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.note {
+  margin-top: 8px !important;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #4a5047;
+}
+
+/* Specs: the parts list the leader lines point at, then the key figures */
+.layers {
+  margin: 40px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layers li {
+  display: grid;
+  grid-template-columns: 2.4rem 6.5rem 1fr;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(13, 15, 12, 0.12);
+}
+
+.layerName {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.layerDetail {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #4a5047;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 22px 18px;
+  margin: 40px 0 0;
+}
+
+.figures div {
+  padding-top: 12px;
+  border-top: 1px solid var(--ink);
+}
+
+.figures dt {
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.figures dd {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.figures b {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.figures span {
+  font-size: 13px;
+  color: #4a5047;
+}
+
+/* Fixed overlay: viewport px, matching the keyboard's projected anchors. */
+.leaders {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.leaders polyline {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke 0.2s;
+}
+
+.leaders circle {
+  fill: var(--bg);
+  stroke: var(--ink);
+  stroke-width: 1.25;
+}
+
+.leaders text {
+  display: none;
+  font-family: var(--font-code);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  fill: var(--ink);
+}
+
+.leaders .hot polyline {
+  stroke: #1f9a45;
+  stroke-width: 1.5;
+}
+
+.leaders .hot circle {
+  fill: var(--phosphor);
+  stroke: var(--ink);
+}
+
+/* Sound: three switch cards and the try field */
+.soundBody {
+  width: min(62rem, 100%);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(13, 15, 12, 0.16);
+  border-radius: 16px;
+  background: rgba(244, 244, 241, 0.78);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.35s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+.card:hover {
+  border-color: var(--ink);
+  transform: translateY(-3px);
+}
+
+.card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--phosphor);
+}
+
+.card[aria-pressed='true'] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink), 0 10px 30px rgba(57, 255, 110, 0.22);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kind {
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.card[aria-pressed='true'] .kind::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor);
+  vertical-align: 1px;
+}
+
+.cardName {
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.cardText {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #4a5047;
+}
+
+.cardSpecs {
+  display: flex;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(13, 15, 12, 0.12);
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A five-bar meter that kicks once per played sound. */
+.meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.meter i {
+  width: 3px;
+  height: 100%;
+  border-radius: 1px;
+  background: rgba(13, 15, 12, 0.2);
+  transform: scaleY(0.2);
+  transform-origin: bottom;
+}
+
+.card[data-playing] .meter i {
+  animation: kick 0.42s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+.card[data-playing] .meter i:nth-child(2) { animation-delay: 0.02s; }
+.card[data-playing] .meter i:nth-child(3) { animation-delay: 0.04s; }
+.card[data-playing] .meter i:nth-child(4) { animation-delay: 0.06s; }
+.card[data-playing] .meter i:nth-child(5) { animation-delay: 0.08s; }
+
+@keyframes kick {
+  20% {
+    transform: scaleY(1);
+    background: var(--phosphor);
+  }
+}
+
+.try {
+  display: grid;
+  gap: 10px;
+  max-width: 34rem;
+  margin-top: 28px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #4a5047;
+}
+
+.try b {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.try input {
+  padding: 14px 18px;
+  border: 1px solid rgba(13, 15, 12, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.try input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--phosphor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover {
+    transform: none;
+  }
+  .card[data-playing] .meter i {
+    animation-duration: 0.01s;
+  }
+}
+
+@media (max-width: 860px) {
+  .team,
+  .cards {
+    grid-template-columns: 1fr;
+  }
+  .team li {
+    grid-template-columns: 56px 1fr;
+    gap: 14px;
+  }
+  .avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .layers li {
+    grid-template-columns: 2rem 1fr;
+  }
+  .layerDetail {
+    grid-column: 2;
+  }
+  /* The board sits under the list here: a frosted backing keeps the rows readable over the lit plate. */
+  .layers,
+  .figures {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding: 4px 12px 12px;
+    border-radius: 14px;
+    background: rgba(244, 244, 241, 0.8);
+    backdrop-filter: blur(8px);
+  }
+  .layers li:first-child {
+    border-top: 0;
+  }
+  /* No room for lines beside the list: numbered markers on the parts instead. */
+  .leaders polyline {
+    display: none;
+  }
+  .leaders text {
+    display: block;
+  }
+}

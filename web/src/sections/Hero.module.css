@@ -77,6 +77,13 @@
   background: var(--phosphor);
 }
 
+.end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+
 .cta {
   justify-self: end;
   padding: 10px 16px;
@@ -194,6 +201,16 @@
     gap: 12px;
   }
   .price span {
+    display: none;
+  }
+  .cta {
+    white-space: nowrap;
+  }
+}
+
+/* Phones: the bar also holds the sound toggle, so the CTA drops its price (the menu sheet keeps it). */
+@media (max-width: 420px) {
+  .ctaPrice {
     display: none;
   }
 }

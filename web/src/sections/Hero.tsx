@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { fx, GL_LOST_EVENT, GL_READY_EVENT } from '../three/bus';
-import { KeyCap, Menu, NAV } from '../nav/Menu';
+import { KeyCap, Menu, NAV, SoundToggle } from '../nav/Menu';
 import s from './Hero.module.css';
 
 // Paints the split headline onto a canvas, glyph by glyph at the DOM's own positions, so the GL copy
@@ -113,9 +113,12 @@ export function Hero() {
             </a>
           ))}
         </nav>
-        <a className={s.cta} href="#order" data-intro>
-          Pre-order — $219
-        </a>
+        <div className={s.end}>
+          <SoundToggle />
+          <a className={s.cta} href="#order" data-intro>
+            Pre-order<span className={s.ctaPrice}> — $219</span>
+          </a>
+        </div>
         <Menu />
       </header>
 

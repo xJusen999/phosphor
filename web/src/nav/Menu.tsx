@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SectionId } from '@phosphor/shared';
+import { ensureAudio, playSwitch, selectedSwitch, setMuted } from '../audio/switches';
 import s from './nav.module.css';
 
 type NavItem = { id: SectionId; key: string; sr?: string; label: string };
@@ -58,5 +59,40 @@ export function Menu() {
         <a className={s.sheetCta} href="#order">Pre-order — $219</a>
       </dialog>
     </>
+  );
+}
+
+const MUTE_KEY = 'phosphor:muted';
+
+/** Sound on/off for the switch sounds, remembered per browser (storage may be blocked: then it just resets). */
+export function SoundToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    let muted = false;
+    try {
+      muted = localStorage.getItem(MUTE_KEY) === '1';
+    } catch {}
+    setMuted(muted);
+    setOn(!muted);
+  }, []);
+  const toggle = () => {
+    const next = !on;
+    setOn(next);
+    setMuted(!next);
+    try {
+      localStorage.setItem(MUTE_KEY, next ? '0' : '1');
+    } catch {}
+    if (next) {
+      void ensureAudio();
+      playSwitch(selectedSwitch()); // confirm it is back on
+    }
+  };
+  return (
+    <button type="button" className={s.sound} data-intro aria-pressed={on} onClick={toggle}>
+      <span aria-hidden="true" className={s.bars}>
+        <i /><i /><i /><i />
+      </span>
+      Sound<span className={s.soundState} aria-hidden="true">{on ? 'on' : 'off'}</span>
+    </button>
   );
 }
