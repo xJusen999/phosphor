@@ -79,6 +79,36 @@ describe('type test', () => {
     expect(test.phase).toBe('idle');
   });
 
+  it('wpm counts net characters: deleted keystrokes do not add speed', () => {
+    const { test, type, clock } = setup();
+    test.start();
+    for (let i = 0; i < 3; i++) {
+      test.onKey('KeyT');
+      test.onKey('Backspace');
+    }
+    clock(6000);
+    expect(test.wpm).toBe(0);
+    expect(test.acc).toBe(1);
+  });
+
+  it('a retyped word counts once: "the⌫⌫⌫the " is 4 chars, 8 wpm in 6 s', () => {
+    const { test, type, clock } = setup();
+    test.start();
+    type('the');
+    ['Backspace', 'Backspace', 'Backspace'].forEach((c) => test.onKey(c));
+    type('the ');
+    clock(6000);
+    expect(test.wpm).toBe(8);
+  });
+
+  it('a wrong word adds nothing; the current word adds its correct prefix', () => {
+    const { test, type, clock } = setup();
+    test.start();
+    type('thx o'); // "thx" misses "the"; "o" starts "of": 1 net char
+    clock(6000);
+    expect(test.wpm).toBe(2); // 1 / 5 / 0.1 min
+  });
+
   it('backspace fixes the current word; a space only counts after a word', () => {
     const { test, type } = setup();
     test.start();

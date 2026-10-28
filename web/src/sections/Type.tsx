@@ -66,7 +66,13 @@ export function Type({ test }: { test: TypeTest }) {
 
   const seconds = Math.ceil(test.timeLeft);
   const rank = sent.state === 'ok' ? sent.value.rank : 0;
-  const status = phase === 'armed' ? typing.armed : phase === 'running' ? typing.running : phase === 'aborted' ? typing.aborted : '';
+  const result = `${test.wpm} wpm at ${pct(test.acc)} accuracy.`;
+  const status =
+    phase === 'armed' ? typing.armed
+    : phase === 'running' ? typing.running
+    : phase === 'done' ? `Time. ${result}`
+    : phase === 'aborted' ? `${typing.aborted} ${result}`
+    : '';
 
   return (
     <section id="type" className={shell.section} data-side="left" aria-labelledby="type-title">
@@ -82,7 +88,8 @@ export function Type({ test }: { test: TypeTest }) {
         </div>
 
         <div className={s.typeGrid} data-rise>
-          <div ref={panel} className={s.panel} tabIndex={-1} data-phase={phase} role="group" aria-label="Typing test">
+          <div ref={panel} className={s.panel} tabIndex={-1} data-phase={phase} role="group" aria-label="Typing test"
+            aria-describedby="type-next">
             <div className={s.stats}>
               <span className={s.stat}>
                 <b>{seconds}</b> s
@@ -99,6 +106,10 @@ export function Type({ test }: { test: TypeTest }) {
                 </button>
               )}
             </div>
+            {/* The word box is visual only; screen readers get the word to type here, one word at a time. */}
+            <p id="type-next" className="sr-only" aria-live="polite">
+              {test.active ? `Type: ${words[done.length] ?? ''}` : ''}
+            </p>
             <div className={s.words} aria-hidden="true">
               <div ref={lines} className={s.lines}>
                 {words.slice(0, done.length + SHOWN).map((w, i) => {

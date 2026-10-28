@@ -26,7 +26,7 @@ export function useDataClient(): DataClient | null {
 
 const MESSAGES: Record<DataErrorCode, string> = {
   unavailable: 'Can’t reach the server right now. Try again in a moment.',
-  denied: 'This copy of the page isn’t allowed to save. Open the full version.',
+  denied: 'This copy of the page isn’t allowed to save.',
   invalid: 'That doesn’t look right. Check it and try again.',
   unknown: 'Something went wrong. Try again.',
 };

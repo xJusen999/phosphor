@@ -17,6 +17,8 @@ type Options = { words?: () => string[]; now?: () => number };
  * The 30-second test without React: keys come in by KeyboardEvent.code (shortcut: letters by key position,
  * so a non-QWERTY layout types the QWERTY letter; fine for a demo). The clock starts on the first key.
  * Words are compared one at a time, so a slip costs one char, not the rest of the text.
+ * Accuracy counts keystrokes; wpm counts net text (right words plus their spaces, and the right start of the
+ * current word), so deleted or retyped characters never add speed.
  */
 export function createTypeTest({ words: given, now = () => performance.now() }: Options = {}) {
   const pick = given ?? (() => shuffledWords((Math.random() * 2 ** 32) >>> 0));
@@ -25,7 +27,8 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
   let done: string[] = [];
   let cur = '';
   let typed = 0;
-  let correct = 0;
+  let correct = 0; // correct keystrokes, for accuracy
+  let net = 0; // chars of the words committed right, each with its space, for wpm
   let t0 = 0;
   let t1 = 0;
   const hits = new Float32Array(LAYOUT_60.length);
@@ -44,7 +47,7 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
       words = pick();
       done = [];
       cur = '';
-      typed = correct = t0 = t1 = 0;
+      typed = correct = net = t0 = t1 = 0;
       hits.fill(0);
       heat.fill(0);
       phase = 'armed';
@@ -72,6 +75,7 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
         if (!cur) return;
         typed++;
         if (cur.length === word.length) correct++; // the space landed where the text has one
+        if (cur === word) net += word.length + 1;
         done.push(cur);
         cur = '';
       } else if (code === 'Backspace') {
@@ -93,7 +97,10 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
     },
     get wpm() {
       sync();
-      return computeWpm(correct, elapsed());
+      const word = words[done.length] ?? '';
+      let prefix = 0;
+      while (prefix < cur.length && cur[prefix] === word[prefix]) prefix++;
+      return computeWpm(net + prefix, elapsed());
     },
     get acc() {
       return accuracy(correct, typed);
