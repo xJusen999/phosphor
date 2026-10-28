@@ -14,8 +14,8 @@ export type Phase = 'idle' | 'armed' | 'running' | 'done' | 'aborted';
 type Options = { words?: () => string[]; now?: () => number };
 
 /**
- * The 30-second test without React: keys come in by KeyboardEvent.code (shortcut: letters by key position,
- * so a non-QWERTY layout types the QWERTY letter; fine for a demo). The clock starts on the first key.
+ * The 30-second test without React: keys come in by KeyboardEvent.code (the heat map is by key position)
+ * plus KeyboardEvent.key (the character, so any layout types its own letters). The clock starts on the first key.
  * Words are compared one at a time, so a slip costs one char, not the rest of the text.
  * Accuracy counts keystrokes; wpm counts net text (right words plus their spaces, and the right start of the
  * current word), so deleted or retyped characters never add speed.
@@ -52,7 +52,8 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
       heat.fill(0);
       phase = 'armed';
     },
-    onKey(code: string) {
+    /** `key` is the typed character (KeyboardEvent.key); without it a Key[A-Z] position types its QWERTY letter. */
+    onKey(code: string, key?: string) {
       sync();
       if (phase !== 'armed' && phase !== 'running') return;
       if (code === 'Escape') {
@@ -80,8 +81,8 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
         cur = '';
       } else if (code === 'Backspace') {
         cur = cur.slice(0, -1);
-      } else if (/^Key[A-Z]$/.test(code)) {
-        const ch = code[3].toLowerCase();
+      } else if (key?.length === 1 || (key === undefined && /^Key[A-Z]$/.test(code))) {
+        const ch = (key ?? code[3]).toLowerCase();
         typed++;
         if (word[cur.length] === ch) correct++;
         if (cur.length < word.length + MAX_EXTRA) cur += ch;
@@ -141,8 +142,8 @@ export function useTypeTest() {
     render();
   }, [test]);
   const onKey = useCallback(
-    (code: string) => {
-      test.onKey(code);
+    (code: string, key?: string) => {
+      test.onKey(code, key);
       render();
     },
     [test],
@@ -155,7 +156,7 @@ export function useTypeTest() {
       if (e.ctrlKey || e.metaKey || e.altKey || !INDEX.has(e.code)) return;
       e.preventDefault(); // Space would scroll, Enter would press a focused button, Tab would move focus
       if (e.code === 'Escape') e.stopPropagation();
-      if (!e.repeat) onKey(e.code);
+      if (!e.repeat) onKey(e.code, e.key);
     };
     const id = setInterval(render, 200); // clock and live wpm; the getters end the test when time is up
     addEventListener('keydown', kd, true);

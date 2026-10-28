@@ -1,0 +1,129 @@
+/* Loader: paper over everything, a breathing phosphor dot and a rotating verb. */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  transition: opacity 0.8s cubic-bezier(0.7, 0, 0.2, 1) 0.15s, visibility 0s linear 0.95s;
+  /* No JS (or it died): the page still shows after 8 s. */
+  animation: loaderFailsafe 0s linear 8s forwards;
+}
+
+.loader[data-out] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@keyframes loaderFailsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.mark {
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+  transition: transform 0.8s cubic-bezier(0.7, 0, 0.2, 1), opacity 0.45s;
+}
+
+.loader[data-out] .mark {
+  transform: translateY(-12px) scale(0.96);
+  opacity: 0;
+}
+
+.loaderDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--white-hot);
+  box-shadow: 0 0 0 2px var(--phosphor), 0 0 18px 4px rgba(57, 255, 110, 0.7);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px var(--phosphor), 0 0 34px 12px rgba(57, 255, 110, 0.32);
+  }
+}
+
+.verb {
+  min-width: 22ch;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #4a5047;
+  animation: verbIn 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+@keyframes verbIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Cursor: a dot that follows the pointer and grows into a phosphor ring over clickable things. */
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 150;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  will-change: transform;
+}
+
+.cursor[data-visible] {
+  opacity: 1;
+}
+
+.cursor i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 1.5px rgba(244, 244, 241, 0.85);
+  translate: -50% -50%;
+  transition: width 0.35s cubic-bezier(0.2, 0.9, 0.25, 1), height 0.35s cubic-bezier(0.2, 0.9, 0.25, 1),
+    background-color 0.25s, box-shadow 0.25s, scale 0.2s, opacity 0.2s;
+}
+
+.cursor[data-state='hover'] i {
+  width: 44px;
+  height: 44px;
+  background: rgba(57, 255, 110, 0.14);
+  box-shadow: inset 0 0 0 1.5px var(--phosphor), 0 0 22px rgba(57, 255, 110, 0.45);
+}
+
+.cursor[data-down] i {
+  scale: 0.82;
+}
+
+/* Text fields keep the native I-beam; open dialogs sit in the top layer, above this dot. */
+.cursor[data-state='text'] i,
+:global(:root:has(dialog[open])) .cursor i {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader,
+  .mark {
+    transition: none;
+  }
+  .loaderDot,
+  .verb {
+    animation: none;
+  }
+}

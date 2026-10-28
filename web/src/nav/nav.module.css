@@ -355,3 +355,10 @@
     gap: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .shortcuts[open],
+  .sheet[open] {
+    animation: none;
+  }
+}

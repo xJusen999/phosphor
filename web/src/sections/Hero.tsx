@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { fx, GL_LOST_EVENT, GL_READY_EVENT } from '../three/bus';
 import { KeyCap, Menu, NAV, SoundToggle } from '../nav/Menu';
+import { loaded } from '../ui/Loader';
 import s from './Hero.module.css';
 
 // Paints the split headline onto a canvas, glyph by glyph at the DOM's own positions, so the GL copy
@@ -68,17 +69,33 @@ export function Hero() {
       resizeTimer = window.setTimeout(paint, 120);
     };
 
+    // If the intro cannot run, the copy and the nav (the mobile menu button is [data-intro] too) show as they are,
+    // and the DOM headline stays (no GL hand-off). The CSS also reveals them after 8 s should JS die altogether.
+    const showAll = () => {
+      el.style.visibility = 'visible';
+      root.current?.querySelectorAll<HTMLElement>('[data-intro]').forEach((n) => {
+        n.style.visibility = 'visible';
+        n.style.opacity = '1';
+      });
+    };
+
     const ctx = gsap.context(() => {}, root);
-    // ctx.add: the tweens made after the fonts load still belong to the context (reverted with it,
+    // Waits for the loader to lift (fonts in, first GL frame drawn), so the intro is not played under it.
+    // ctx.add: the tweens made then still belong to the context (reverted with it,
     // and '[data-intro]' resolves inside the hero only).
-    document.fonts.ready.then(() =>
+    loaded.then(() =>
       ctx.add(() => {
         if (!alive) return;
-        split = SplitText.create(el, { type: 'words,chars', mask: 'words', wordsClass: 'hw', charsClass: 'hc' });
-        el.style.visibility = 'visible';
-        if (reduced) return whenGL();
-        gsap.from(split.chars, { yPercent: 118, duration: 1.25, ease: 'expo.out', stagger: 0.024, delay: 0.15, onComplete: whenGL });
-        gsap.fromTo('[data-intro]', { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'power3.out', stagger: 0.07, delay: 0.55 });
+        try {
+          split = SplitText.create(el, { type: 'words,chars', mask: 'words', wordsClass: 'hw', charsClass: 'hc' });
+          el.style.visibility = 'visible';
+          if (reduced) return whenGL();
+          gsap.from(split.chars, { yPercent: 118, duration: 1.25, ease: 'expo.out', stagger: 0.024, delay: 0.15, onComplete: whenGL });
+          gsap.fromTo('[data-intro]', { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'power3.out', stagger: 0.07, delay: 0.55 });
+        } catch (err) {
+          showAll();
+          console.error(err);
+        }
       }),
     );
     addEventListener('resize', onResize);
@@ -116,7 +133,7 @@ export function Hero() {
         <div className={s.end}>
           <SoundToggle />
           <a className={s.cta} href="#order" data-intro>
-            Pre-order<span className={s.ctaPrice}> — $219</span>
+            Pre-order<span className={s.ctaPrice}> — from $219</span>
           </a>
         </div>
         <Menu />
@@ -137,7 +154,7 @@ export function Hero() {
             Press <kbd>P</kbd> to start <span aria-hidden="true">·</span> or just scroll
           </p>
           <p className={s.price} data-intro>
-            <span>Pre-order</span> <b>$219</b> <span>· ships in spring</span>
+            <span>Pre-order</span> from <b>$219</b> <span>· ships in spring</span>
           </p>
         </div>
       </section>

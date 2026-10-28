@@ -56,7 +56,7 @@ export function Menu() {
             ))}
           </ol>
         </nav>
-        <a className={s.sheetCta} href="#order">Pre-order — $219</a>
+        <a className={s.sheetCta} href="#order">Pre-order — from $219</a>
       </dialog>
     </>
   );

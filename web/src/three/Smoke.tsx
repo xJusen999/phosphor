@@ -12,6 +12,7 @@ const KEYS = new Map(LAYOUT_60.map((k) => [k.code, k]));
 const POINTER_FORCE = 5200; // sim texels/s per UV of cursor travel in one frame
 const PREWARM_STEPS = 150; // ~2.5 s of smoke already in the room on the first frame
 const PREWARM_STILL = 420; // reduced motion: an older, wispier smoke for the one frame that stays
+const PREWARM_PER_FRAME = 60; // spread over the first frames (under the loader) so no single frame hitches
 const STEP = 1 / 60;
 const VENT_FORCE = 900; // sim texels/s added per second of venting
 // Vents in keyboard screen-box units (centre 0, edges ±1) and their outward drift.
@@ -60,7 +61,7 @@ export function Smoke({ pressed, keyboard }: Props) {
       dyeDissipation: [0.45, 0.22, 1.2, 0],
     });
   }, [gl]);
-  const st = useRef({ reduced: false, warmed: false, t: 0, prev: new Set<string>() });
+  const st = useRef({ reduced: false, warmed: false, warmSteps: 0, t: 0, prev: new Set<string>() });
   const ptr = useRef({ x: 0, y: 0, px: 0, py: 0, moved: false, seen: false });
 
   useEffect(() => {
@@ -108,11 +109,12 @@ export function Smoke({ pressed, keyboard }: Props) {
     const kb = keyboard.current ? screenBox(keyboard.current, camera) : null;
 
     if (!s.warmed && kb) {
-      for (let i = 0, n = s.reduced ? PREWARM_STILL : PREWARM_STEPS; i < n; i++) {
+      const n = s.reduced ? PREWARM_STILL : PREWARM_STEPS;
+      for (let i = 0; i < PREWARM_PER_FRAME && s.warmSteps < n; i++, s.warmSteps++) {
         emit(STEP, (s.t += STEP), kb, aspect);
         fluid.step(STEP);
       }
-      s.warmed = true;
+      s.warmed = s.warmSteps >= n;
     }
     if (s.reduced || !s.warmed) {
       // Reduced motion: the pre-warmed frame stays as a still.

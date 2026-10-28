@@ -65,3 +65,13 @@ h1[tabindex='-1']:focus,
 h2[tabindex='-1']:focus {
   outline: none;
 }
+
+/* Custom cursor (src/ui/Cursor.tsx) on: hide the native one, except in text fields and while a dialog is open. */
+:root[data-cursor]:not(:has(dialog[open])),
+:root[data-cursor]:not(:has(dialog[open])) * {
+  cursor: none !important;
+}
+
+:root[data-cursor]:not(:has(dialog[open])) :is(input, textarea) {
+  cursor: text !important;
+}

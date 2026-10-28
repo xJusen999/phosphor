@@ -89,11 +89,11 @@ export const typing = {
 
 export const order = {
   title: 'Ships in spring.',
-  lead: 'Reserve the build you just made. Nothing is charged today: we email you before it ships.',
+  lead: 'Reserve the build you just made. Nothing is charged, and this concept sends no emails.',
   summary: 'Your build',
   change: 'Change the build',
   waitlistTitle: 'Not ready yet?',
-  waitlistLead: 'Join the waitlist and hear first when the next batch opens.',
+  waitlistLead: 'Take a place in line for the next batch. It is a concept: your place is kept, no email follows.',
   concept: 'Phosphor is a design concept. No order ships and no payment is ever taken.',
 };
 

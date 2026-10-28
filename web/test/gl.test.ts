@@ -30,5 +30,6 @@ describe('markGLLost', () => {
     expect(fx.glReady).toBe(false);
     expect(fx.headlineGL).toBe(0);
     expect(heard).toBe(1);
+    expect(fx.glFailed).toBe(true); // a loader mounted after the event still knows not to wait
   });
 });

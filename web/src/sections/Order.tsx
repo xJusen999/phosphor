@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { isEmail, OPTIONS, priceOf, type BuildConfig } from '@phosphor/shared';
 import { build, offlineNote, order } from '../content/copy';
 import { FULL_VERSION_URL } from '../data/fullVersion';
@@ -52,7 +52,10 @@ function EmailForm<T>({ id, button, req, send, success }: {
 export function Order() {
   const client = useDataClient();
   const { config } = useBuild();
-  const [placed, place] = useRequest<{ id: string; total: number }>();
+  const [placed, place, setPlaced] = useRequest<{ id: string; total: number }>();
+  // A changed build is a new order: the receipt of the old one gives way to the form again.
+  const buildKey = GROUPS.map((g) => config[g]).join();
+  useEffect(() => setPlaced({ state: 'idle' }), [buildKey, setPlaced]);
   const [joined, join] = useRequest<{ position: number }>();
   const total = priceOf(config);
   const offline = client?.mode === 'offline';
@@ -100,7 +103,7 @@ export function Order() {
         <div data-rise>
           <EmailForm id="order-email" button={`Pre-order · $${total}`} req={placed}
             send={(email) => place(() => client!.placeOrder(config, email))}
-            success={(r) => `Reserved${where}. Order ${shortId(r.id)}, $${r.total} due when it ships. Check your inbox in spring.`} />
+            success={(r) => `Reserved${where}. Order ${shortId(r.id)}, $${r.total}. A concept: nothing is charged and no email is sent.`} />
         </div>
 
         <div className={s.wait} data-rise>

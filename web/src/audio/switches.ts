@@ -29,8 +29,15 @@ export async function ensureAudio(): Promise<void> {
     if (!ctx) {
       const c = new AC();
       out = c.createGain();
-      out.gain.value = 0.55;
-      out.connect(c.destination);
+      out.gain.value = 0.45;
+      // Headroom: overlapping presses (fast typing) are squeezed by a limiter instead of clipping.
+      const limiter = c.createDynamicsCompressor();
+      limiter.threshold.value = -10;
+      limiter.knee.value = 6;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.002;
+      limiter.release.value = 0.12;
+      out.connect(limiter).connect(c.destination);
       // Half a second of white noise; each press reads it from a random offset so no two sound alike.
       noise = c.createBuffer(1, Math.ceil(c.sampleRate * 0.5), c.sampleRate);
       const d = noise.getChannelData(0);
@@ -44,6 +51,11 @@ export async function ensureAudio(): Promise<void> {
   } catch {
     // No audio device or the browser refused: the site stays silent.
   }
+}
+
+// Every voice is a short chain: free it once the source has stopped.
+function release(src: AudioScheduledSourceNode, ...chain: AudioNode[]) {
+  src.onended = () => [src, ...chain].forEach((n) => n.disconnect());
 }
 
 function envelope(c: AudioContext, t: number, dur: number, level: number) {
@@ -61,7 +73,9 @@ function burst(c: AudioContext, t: number, dur: number, type: BiquadFilterType, 
   f.type = type;
   f.frequency.value = freq;
   f.Q.value = q;
-  src.connect(f).connect(envelope(c, t, dur, level)).connect(out!);
+  const env = envelope(c, t, dur, level);
+  src.connect(f).connect(env).connect(out!);
+  release(src, f, env);
   src.start(t, Math.random() * 0.38);
   src.stop(t + dur);
 }
@@ -71,7 +85,9 @@ function tone(c: AudioContext, t: number, dur: number, type: OscillatorType, fre
   o.type = type;
   o.frequency.setValueAtTime(freq, t);
   o.frequency.exponentialRampToValueAtTime(freq * drop, t + dur);
-  o.connect(envelope(c, t, dur, level)).connect(out!);
+  const env = envelope(c, t, dur, level);
+  o.connect(env).connect(out!);
+  release(o, env);
   o.start(t);
   o.stop(t + dur);
 }

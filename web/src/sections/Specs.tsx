@@ -25,6 +25,21 @@ export function Specs() {
 
   useEffect(() => {
     let shown = -1;
+    // Each row number's left edge and middle in page coordinates, measured once per layout change
+    // (offsets ignore the rows' rise transforms, so a mid-animation measure is still right).
+    let rowAt: number[][] | null = null;
+    const ro = new ResizeObserver(() => (rowAt = null));
+    ro.observe(document.body);
+    const measure = () =>
+      rows.current.map((row) => {
+        const num = row!.firstElementChild as HTMLElement;
+        let x = 0, y = 0;
+        for (let e: HTMLElement | null = num; e; e = e.offsetParent as HTMLElement | null) {
+          x += e.offsetLeft;
+          y += e.offsetTop;
+        }
+        return [x, y + num.offsetHeight / 2];
+      });
     fx.leaders = (pts, explode) => {
       const k = smooth(0.5, 0.95, explode);
       if (k !== shown) svg.current!.style.opacity = String(k);
@@ -33,10 +48,8 @@ export function Specs() {
       const n = rows.current.length;
       let right = 0;
       for (let i = 0; i < n; i++) right = Math.max(right, pts[i * 2]);
-      const ends = rows.current.map((row) => {
-        const r = row!.firstElementChild!.getBoundingClientRect(); // the row's number
-        return [r.left - 12, r.top + r.height / 2];
-      });
+      rowAt ??= measure();
+      const ends = rowAt.map(([x, y]) => [x - 12 - scrollX, y - scrollY]);
       // Orthogonal routing: out to its own column, along to the row's height, in to the row. Columns are
       // staggered so the lines never cross (lower parts turn first while the rows sit below the parts).
       const down = ends[0][1] > pts[1];
@@ -53,6 +66,7 @@ export function Specs() {
       });
     };
     return () => {
+      ro.disconnect();
       fx.leaders = null;
     };
   }, []);

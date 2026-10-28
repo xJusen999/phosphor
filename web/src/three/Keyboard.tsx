@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import {
-  BoxGeometry, Color, Group, InstancedBufferAttribute, InstancedMesh, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
+  Box3, BoxGeometry, Color, Group, InstancedBufferAttribute, InstancedMesh, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
   MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Texture,
 } from 'three';
 import { LAYOUT_60, type BuildConfig, type KeyDef } from '@phosphor/shared';
@@ -197,6 +197,37 @@ export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
     parts.capMat.color.set(CAP_COLOR[finish.keycaps]);
     parts.uniforms.legend.value = finish.keycaps === 'blank' ? 0 : 1;
   }, [finish, parts]);
+
+  // R3F raycasts the whole board on every pointer event anywhere on the page (its events come from <body>).
+  // Gate it: events are on only while the pointer is over the board's projected screen box.
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    const shell = parts.kase.getObjectByName('shell')!;
+    const box = new Box3(), caps = new Box3(), p = new Vector3();
+    const MARGIN = 8; // CSS px
+    let on = true;
+    const gate = (e: PointerEvent) => {
+      const { camera, size, setEvents } = get();
+      box.setFromObject(shell).union(caps.setFromObject(parts.caps)); // the caps rise above the shell when exploded
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        p.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+        const x = ((p.x + 1) / 2) * size.width, y = ((1 - p.y) / 2) * size.height;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+      const inside = e.clientX > x0 - MARGIN && e.clientX < x1 + MARGIN && e.clientY > y0 - MARGIN && e.clientY < y1 + MARGIN;
+      if (inside !== on) setEvents({ enabled: (on = inside) });
+    };
+    // Capture on window: runs before R3F's own listener on <body> sees the same event.
+    const opts = { capture: true, passive: true };
+    addEventListener('pointermove', gate, opts);
+    addEventListener('pointerdown', gate, opts);
+    return () => {
+      removeEventListener('pointermove', gate, opts);
+      removeEventListener('pointerdown', gate, opts);
+      get().setEvents({ enabled: true });
+    };
+  }, [get, parts]);
 
   const dummy = useMemo(() => new Object3D(), []);
   const color = useMemo(() => new Color(), []);

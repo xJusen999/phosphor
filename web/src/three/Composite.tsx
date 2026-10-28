@@ -92,7 +92,7 @@ vec3 shade(vec4 s) {
 
 void main() {
   float s = scroll * motion;
-  vec2 uv = 0.5 + (vUv - 0.5) / (1.0 + abs(s) * 0.02);
+  vec2 uv = 0.5 + (vUv - 0.5) / (1.0 + abs(s) * 0.012);
   vec2 dm = uv - mouse;
   dm.x *= aspect;
   float len = length(dm);
@@ -127,9 +127,10 @@ void main() {
   float inside = step(0.0, tuv.x) * step(tuv.x, 1.0) * step(0.0, tuv.y) * step(tuv.y, 1.0);
   col = mix(col, ink, texture2D(tText, tuv).a * textAlpha * inside);
 
-  // Keyboard, with a scroll-scaled RGB shift (0.0015 per screen/s).
+  // Keyboard, with a scroll-scaled RGB shift (0.001 per screen/s: at 60+ fps a brisk flick runs 3+ screens/s,
+  // and more than ~2.5 px of fringe reads as a glitch, not as speed).
   vec2 kuv = uv - flow * 0.000008; // the product only shimmers; the headline is what smears
-  vec2 off = vec2(0.0, 0.0015 * s);
+  vec2 off = vec2(0.0, 0.001 * s);
   vec4 sg = texture2D(tScene, kuv);
   vec4 sr = texture2D(tScene, kuv + off);
   vec4 sb = texture2D(tScene, kuv - off);
@@ -285,9 +286,11 @@ export function Composite() {
     if (fx.dye) u.dyeTexel.value.set(1 / fx.dye.image.width, 1 / fx.dye.image.height);
     u.mouse.value.copy(s.mouse);
     u.aspect.value = size.width / Math.max(size.height, 1);
-    u.scroll.value = Math.max(-3, Math.min(3, s.vel));
+    u.scroll.value = Math.max(-2.5, Math.min(2.5, s.vel));
     u.motion.value = s.reduced ? 0 : 1;
-    u.smokeAmt.value = Math.min(Math.max(1 - y / size.height, 0), 1); // the hero's smoke leaves with the hero
+    // The hero's smoke holds while the headline is in view, then leaves with the hero (gone at 95%, where Smoke stops).
+    const out = Math.min(Math.max((y / size.height - 0.3) / 0.65, 0), 1);
+    u.smokeAmt.value = 1 - out * out * (3 - 2 * out);
     if (!s.reduced) u.time.value = clock.elapsedTime;
     quad.material = m.final;
     gl.setRenderTarget(null);

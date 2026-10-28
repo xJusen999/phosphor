@@ -119,6 +119,22 @@ describe('type test', () => {
     expect(test.done).toEqual(['the']);
     expect(test.acc).toBe(4 / 5);
   });
+  it('letters come from the layout (e.key), heat from the key position (e.code)', () => {
+    const { test } = setup();
+    test.start();
+    // Dvorak: "t", "h" and "e" sit on the QWERTY K, J and D positions.
+    test.onKey('KeyK', 't');
+    test.onKey('KeyJ', 'h');
+    test.onKey('KeyD', 'E'); // shifted
+    test.onKey('Space', ' ');
+    expect(test.done).toEqual(['the']);
+    expect(test.heat[at('KeyK')]).toBe(1);
+    expect(test.heat[at('KeyT')]).toBe(0);
+    // A layout letter on a non-letter position still types; a symbol on a letter position is an error, not "q".
+    test.onKey('Semicolon', 'o');
+    test.onKey('KeyQ', "'");
+    expect(test.cur).toBe("o'");
+  });
 });
 
 describe('words', () => {

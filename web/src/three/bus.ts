@@ -13,6 +13,8 @@ export const fx = {
   headlineGL: 0,
   /** True once the composite has drawn a frame: the hero only hands the headline to GL after that. */
   glReady: false,
+  /** True once GL has failed or been lost at least once (no WebGL2, context lost, error fallback): the loader stops waiting. */
+  glFailed: false,
   /**
    * Specs leader lines: every frame the keyboard projects one anchor per layer (caps, switches, plate, PCB,
    * gasket, case) to CSS px and passes them as [x0, y0, x1, y1, …] with the explode amount (0..1).
@@ -30,6 +32,7 @@ export const GL_LOST_EVENT = 'phosphor:gl-lost';
 /** GL went away (context lost, composite unmounted, error boundary fell back): the DOM headline must paint again. */
 export function markGLLost(target: EventTarget = window) {
   fx.glReady = false;
+  fx.glFailed = true;
   fx.headlineGL = 0;
   target.dispatchEvent(new Event(GL_LOST_EVENT));
 }

@@ -15,6 +15,8 @@ import { goTo, Transition } from '../src/nav/Transition';
 import { Shortcuts } from '../src/nav/Shortcuts';
 import { BuildProvider, useBuild } from '../src/state/build';
 import { useTypeTest } from '../src/type/useTypeTest';
+import { Loader } from '../src/ui/Loader';
+import { Cursor } from '../src/ui/Cursor';
 
 export default function Home() {
   return (
@@ -54,6 +56,8 @@ function Page() {
       <Shells tap={tap} test={test} />
       <Transition />
       <Shortcuts />
+      <Cursor />
+      <Loader />
     </main>
   );
 }

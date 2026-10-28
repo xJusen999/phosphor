@@ -62,11 +62,16 @@ function Studio() {
 
 const FIXED = { position: 'fixed', inset: 0, width: '100%', height: '100%' } as const;
 
+const EDGE_FADE = 'linear-gradient(to right, transparent, #000 8%), linear-gradient(to bottom, transparent, #000 14%)';
+
 function Fallback() {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src="./keyboard-fallback.webp" alt="The Phosphor One keyboard, backlit in phosphor green"
-      style={{ ...FIXED, objectFit: 'contain', pointerEvents: 'none' }} />
+      // Bottom right, where the 3D board sits in the hero, so the headline stays clear; the top and left edges
+      // fade out so the photo's paper never shows a seam against the page's.
+      style={{ position: 'fixed', right: 0, bottom: 0, width: '72vw', height: '82vh', objectFit: 'contain', objectPosition: 'right bottom',
+        pointerEvents: 'none', maskImage: EDGE_FADE, WebkitMaskImage: EDGE_FADE, maskComposite: 'intersect', WebkitMaskComposite: 'source-in' }} />
   );
 }
 
@@ -95,17 +100,18 @@ function hasWebGL2() {
 /** Fixed full-screen canvas; falls back to a still image without WebGL2. */
 export function Stage({ children }: { children: ReactNode }) {
   const [support, setSupport] = useState<null | { webgl2: boolean; dpr: number }>(null);
+  const [lost, setLost] = useState(false); // context lost (GPU reset, driver, too many contexts): the still covers it
   useEffect(() => {
-    setSupport({
-      webgl2: hasWebGL2(),
-      dpr: maxDpr({ coarse: matchMedia('(pointer: coarse)').matches, w: innerWidth, h: innerHeight }),
-    });
+    const webgl2 = hasWebGL2();
+    setSupport({ webgl2, dpr: maxDpr({ coarse: matchMedia('(pointer: coarse)').matches, w: innerWidth, h: innerHeight }) });
+    if (!webgl2) markGLLost(); // nothing will ever announce GL ready: the loader and the headline stop waiting
   }, []);
 
   if (!support) return null;
   if (!support.webgl2) return <Fallback />;
   return (
     <GLBoundary>
+      {lost && <Fallback />}
       <Canvas
         style={FIXED}
         // Pointer events come from the whole page: the sections' DOM sits above the fixed canvas.
@@ -118,6 +124,8 @@ export function Stage({ children }: { children: ReactNode }) {
         gl={{ antialias: false, alpha: true, toneMapping: NeutralToneMapping }}
         onCreated={({ gl, scene, camera }) => {
           camera.lookAt(0, 0, 0);
+          gl.domElement.addEventListener('webglcontextlost', () => setLost(true));
+          gl.domElement.addEventListener('webglcontextrestored', () => setLost(false));
           if (process.env.NODE_ENV !== 'production') Object.assign(window, { __phosphor: { gl, scene, camera } });
         }}
       >

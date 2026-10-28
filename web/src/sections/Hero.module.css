@@ -87,6 +87,7 @@
 .cta {
   justify-self: end;
   padding: 10px 16px;
+  white-space: nowrap;
   border-radius: 999px;
   color: var(--bg) !important;
   background: var(--ink);
@@ -185,11 +186,20 @@
 @media (prefers-reduced-motion: no-preference) {
   .intro [data-intro] {
     visibility: hidden;
+    animation: failsafe 0s linear 8s forwards;
   }
 }
 
 .title {
   visibility: hidden;
+  animation: failsafe 0s linear 8s forwards;
+}
+
+/* Should the intro never run (JS failed), the headline and the nav still show. */
+@keyframes failsafe {
+  to {
+    visibility: visible;
+  }
 }
 
 @media (max-width: 860px) {
@@ -203,13 +213,10 @@
   .price span {
     display: none;
   }
-  .cta {
-    white-space: nowrap;
-  }
 }
 
 /* Phones: the bar also holds the sound toggle, so the CTA drops its price (the menu sheet keeps it). */
-@media (max-width: 420px) {
+@media (max-width: 470px) {
   .ctaPrice {
     display: none;
   }

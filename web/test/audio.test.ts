@@ -13,12 +13,22 @@ class FakeNode {
   frequency = new FakeParam();
   gain = new FakeParam();
   Q = new FakeParam();
+  threshold = new FakeParam();
+  knee = new FakeParam();
+  ratio = new FakeParam();
+  attack = new FakeParam();
+  release = new FakeParam();
   type = '';
   buffer: unknown = null;
+  onended: (() => void) | null = null;
+  disconnected = false;
   connect<T>(n: T) { return n; }
+  disconnect() { this.disconnected = true; }
   start() {}
   stop() {}
 }
+const sources: FakeNode[] = [];
+const track = (n: FakeNode) => (sources.push(n), n);
 class FakeAudioContext {
   state = 'suspended';
   currentTime = 0;
@@ -28,8 +38,9 @@ class FakeAudioContext {
   async resume() { this.state = 'running'; }
   createGain() { return new FakeNode(); }
   createBiquadFilter() { return new FakeNode(); }
-  createOscillator() { made.oscillators++; return new FakeNode(); }
-  createBufferSource() { made.sources++; return new FakeNode(); }
+  createOscillator() { made.oscillators++; return track(new FakeNode()); }
+  createBufferSource() { made.sources++; return track(new FakeNode()); }
+  createDynamicsCompressor() { return new FakeNode(); }
   createBuffer(_c: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
 }
 
@@ -44,6 +55,7 @@ const load = () => import('../src/audio/switches');
 beforeEach(() => {
   vi.resetModules();
   Object.assign(made, { contexts: 0, oscillators: 0, sources: 0 });
+  sources.length = 0;
   vi.stubGlobal('AudioContext', FakeAudioContext);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -117,6 +129,15 @@ describe('playSwitch', () => {
     const { ensureAudio, playSwitch } = await load();
     await expect(ensureAudio()).resolves.toBeUndefined();
     expect(() => playSwitch('clicky')).not.toThrow();
+  });
+
+  it('disconnects every voice once it has played, so fast typing does not pile up nodes', async () => {
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    playSwitch('clicky');
+    expect(sources.length).toBeGreaterThan(0);
+    sources.forEach((n) => n.onended?.());
+    expect(sources.every((n) => n.disconnected)).toBe(true);
   });
 
   it('creates one context however many gestures', async () => {

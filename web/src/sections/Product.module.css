@@ -180,7 +180,12 @@
   inset: calc(var(--w) * -0.5);
   border-radius: inherit;
   filter: blur(var(--b));
-  animation: spin var(--s) linear infinite;
+  animation: spin var(--s) linear infinite paused;
+}
+
+/* Only the picked options spin: 27 rings repainting every frame for nothing would cost the scroll its 60 fps. */
+.option[aria-pressed='true'] .glow i {
+  animation-play-state: running;
 }
 
 .glow i:nth-child(1) { --w: 2px; --b: 0px; --s: 7s; --o: 0deg; }
