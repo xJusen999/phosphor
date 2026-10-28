@@ -5,6 +5,9 @@ let out: GainNode | null = null;
 let noise: AudioBuffer | null = null;
 let muted = false;
 let selected: SwitchProfile = 'linear';
+// True between a gesture's resume() call and the press it triggers: that one press may schedule on the
+// still-suspended clock (it plays as the context wakes); any other press on a suspended context is dropped.
+let primed = false;
 
 /** The profile every key press plays (picked in the Sound section). */
 export const selectedSwitch = () => selected;
@@ -14,11 +17,14 @@ export const setMuted = (m: boolean) => void (muted = m);
 
 /**
  * Creates and resumes the audio context. Call it from a user gesture (click, key press): browsers keep
- * audio locked until then, and until it runs once `playSwitch` stays silent.
+ * audio locked until then, and until it runs once `playSwitch` stays silent. Events that do not activate
+ * the page (Escape, a touch pointerdown) are ignored, so they never leave a suspended context behind.
  */
 export async function ensureAudio(): Promise<void> {
   const AC = globalThis.AudioContext;
   if (!AC) return;
+  const activation = (globalThis.navigator as Navigator | undefined)?.userActivation;
+  if (activation && !activation.isActive) return;
   try {
     if (!ctx) {
       const c = new AC();
@@ -31,7 +37,10 @@ export async function ensureAudio(): Promise<void> {
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       ctx = c;
     }
-    if (ctx.state !== 'running') await ctx.resume();
+    if (ctx.state !== 'running') {
+      primed = true;
+      await ctx.resume();
+    }
   } catch {
     // No audio device or the browser refused: the site stays silent.
   }
@@ -73,7 +82,9 @@ function tone(c: AudioContext, t: number, dur: number, type: OscillatorType, fre
  */
 export function playSwitch(profile: SwitchProfile, { pitch = 1 }: { pitch?: number } = {}): void {
   const c = ctx;
-  if (!c || !out || !noise || muted) return;
+  const live = !!c && (c.state === 'running' || primed);
+  primed = false;
+  if (!c || !live || !out || !noise || muted) return;
   const t = c.currentTime + 0.004;
   const bottom = profile === 'tactile' ? t + 0.024 : t; // the bump comes before bottom-out
   if (profile === 'tactile') burst(c, t, 0.03, 'bandpass', 560 * pitch, 1.4, 0.4);

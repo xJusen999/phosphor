@@ -14,6 +14,17 @@ type Switch = (typeof sound.switches)[number];
 export function Sound({ tap }: { tap: (code: string) => void }) {
   const [picked, setPicked] = useState<SwitchProfile>('linear');
   const cards = useRef<Partial<Record<SwitchProfile, HTMLButtonElement | null>>>({});
+  const group = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+
+  // Zoom the board onto a switch's key, framed in the free space below the cards (right of the field when wide).
+  const focus = (key: string) => {
+    const c = group.current!.getBoundingClientRect(), f = field.current!.getBoundingClientRect();
+    fx.focusAt = innerWidth > 860
+      ? { x: (f.right + innerWidth) / 2, y: (c.bottom + innerHeight) / 2 }
+      : { x: innerWidth / 2, y: Math.min((Math.max(c.bottom, f.bottom) + innerHeight) / 2, innerHeight - 60) };
+    fx.focusKey = key;
+  };
 
   const play = (sw: Switch) => {
     playSwitch(sw.id); // silent until a click or key press unlocked audio
@@ -27,6 +38,7 @@ export function Sound({ tap }: { tap: (code: string) => void }) {
   };
   const pick = (sw: Switch) => {
     void ensureAudio();
+    focus(sw.key); // stays framed on touch too; the rig lets go when the page scrolls away
     selectSwitch(sw.id);
     setPicked(sw.id);
     play(sw);
@@ -45,12 +57,16 @@ export function Sound({ tap }: { tap: (code: string) => void }) {
         <p className={shell.copy} data-rise>{sound.lead}</p>
         <p className={s.fine} data-rise>{sound.note}</p>
 
-        <div className={s.cards} role="group" aria-label="Switch sound" data-rise
-          onPointerEnter={() => (fx.focus = 1)} onPointerLeave={() => (fx.focus = 0)}>
+        <div ref={group} className={s.cards} role="group" aria-label="Switch sound" data-rise
+          onPointerLeave={(e) => e.pointerType === 'mouse' && (fx.focusKey = null)}>
           {sound.switches.map((sw) => (
             <button key={sw.id} type="button" className={s.card} data-switch aria-pressed={picked === sw.id}
               ref={(el) => void (cards.current[sw.id] = el)}
-              onPointerEnter={(e) => e.pointerType === 'mouse' && play(sw)}
+              onPointerEnter={(e) => {
+                if (e.pointerType !== 'mouse') return;
+                focus(sw.key);
+                play(sw);
+              }}
               onClick={() => pick(sw)}>
               <span className={s.cardTop}>
                 <span className={s.kind}>{sw.kind}</span>
@@ -70,8 +86,8 @@ export function Sound({ tap }: { tap: (code: string) => void }) {
           <span>
             {sound.tryLabel}: <b>{current.name}</b>, {current.kind.toLowerCase()}
           </span>
-          <input type="text" placeholder={sound.tryPlaceholder} autoComplete="off" spellCheck={false}
-            onFocus={() => (fx.focus = 1)} onBlur={() => (fx.focus = 0)} />
+          <input ref={field} type="text" placeholder={sound.tryPlaceholder} autoComplete="off" spellCheck={false}
+            onFocus={() => focus(current.key)} onBlur={() => (fx.focusKey = null)} />
         </label>
       </div>
     </section>

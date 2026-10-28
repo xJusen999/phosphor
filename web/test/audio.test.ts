@@ -33,6 +33,11 @@ class FakeAudioContext {
   createBuffer(_c: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
 }
 
+// A browser that never lets the context run (resume() is refused without user activation).
+class StuckAudioContext extends FakeAudioContext {
+  async resume() {}
+}
+
 // Fresh module state per test (the audio context is a module singleton).
 const load = () => import('../src/audio/switches');
 
@@ -42,6 +47,23 @@ beforeEach(() => {
   vi.stubGlobal('AudioContext', FakeAudioContext);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe('ensureAudio', () => {
+  it('creates no context without user activation (e.g. Escape keydown, touch pointerdown)', async () => {
+    vi.stubGlobal('navigator', { userActivation: { isActive: false } });
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    playSwitch('linear');
+    expect(made).toEqual({ contexts: 0, oscillators: 0, sources: 0 });
+  });
+
+  it('creates the context during a user activation', async () => {
+    vi.stubGlobal('navigator', { userActivation: { isActive: true } });
+    const { ensureAudio } = await load();
+    await ensureAudio();
+    expect(made.contexts).toBe(1);
+  });
+});
 
 describe('playSwitch', () => {
   it('is a silent no-op before ensureAudio', async () => {
@@ -76,6 +98,18 @@ describe('playSwitch', () => {
     setMuted(true);
     playSwitch('linear');
     expect(made.oscillators + made.sources).toBe(0);
+  });
+
+  it('queues nothing on a suspended context: only the press that resumed it plays', async () => {
+    vi.stubGlobal('AudioContext', StuckAudioContext);
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    playSwitch('linear'); // the gesture's own press
+    const first = { ...made };
+    expect(first.oscillators).toBe(1);
+    playSwitch('linear'); // a later hover while still suspended
+    playSwitch('clicky');
+    expect(made).toEqual(first);
   });
 
   it('does not throw without AudioContext', async () => {

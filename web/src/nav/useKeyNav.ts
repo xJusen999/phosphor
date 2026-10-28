@@ -57,7 +57,7 @@ export function useKeyNav(typeTestActive = false) {
     };
     const ku = (e: KeyboardEvent) => press(e.code, false);
     const clear = () => setPressed(new Set());
-    const unlock = () => void ensureAudio();
+    const unlock = () => void ensureAudio(); // on release: touch only activates the page on pointerup
     const release = () => {
       if (held.current) press(held.current, false);
       held.current = null;
@@ -73,7 +73,7 @@ export function useKeyNav(typeTestActive = false) {
     addEventListener('keydown', kd);
     addEventListener('keyup', ku);
     addEventListener('blur', clear);
-    addEventListener('pointerdown', unlock);
+    addEventListener('pointerup', unlock);
     addEventListener('pointerup', release);
     addEventListener('pointercancel', release);
     document.addEventListener('click', click);
@@ -81,7 +81,7 @@ export function useKeyNav(typeTestActive = false) {
       removeEventListener('keydown', kd);
       removeEventListener('keyup', ku);
       removeEventListener('blur', clear);
-      removeEventListener('pointerdown', unlock);
+      removeEventListener('pointerup', unlock);
       removeEventListener('pointerup', release);
       removeEventListener('pointercancel', release);
       document.removeEventListener('click', click);

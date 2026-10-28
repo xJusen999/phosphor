@@ -46,7 +46,7 @@ export type LayerId = (typeof specs.layers)[number]['id'];
 
 export const sound = {
   title: 'Hear it before you buy it.',
-  lead: 'Three switches, three voices. Hover or tap a card to hear it, pick one, then type anywhere on the page.',
+  lead: 'Three switches, three voices. Hover or tap a card to hear it, pick one, then type in the field below. Every key on the page plays it too.',
   switches: [
     { id: 'linear', key: 'KeyL', name: 'Mist', kind: 'Linear', force: '45 gf', travel: '4.0 mm', text: 'Smooth all the way down. A low, rounded thock.' },
     { id: 'tactile', key: 'KeyT', name: 'Fern', kind: 'Tactile', force: '55 gf', travel: '3.8 mm', text: 'A soft bump halfway, felt more than heard.' },
