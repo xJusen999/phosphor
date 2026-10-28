@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { shouldHandleKey, type SectionId } from '@phosphor/shared';
 import { SECTION_ORDER } from '../scene/poses';
-import { ensureAudio, playSwitch, pressPitch, selectedSwitch } from '../audio/switches';
+import { ensureAudio, playSwitch, pressPitch, releaseSwitch, selectedSwitch } from '../audio/switches';
 import { goTo } from './Transition';
 import { openShortcuts } from './Shortcuts';
 
 // A key press is a user gesture: it unlocks audio on the first one, then plays the selected switch.
-function keySound() {
+function keySound(code: string) {
   void ensureAudio();
-  playSwitch(selectedSwitch(), { pitch: pressPitch() });
+  playSwitch(selectedSwitch(), { pitch: pressPitch(), code });
 }
 
 /**
@@ -42,7 +42,7 @@ export function useKeyNav(typeTestActive = false) {
       press(e.code, true);
       const t = e.target as HTMLElement;
       // A switch card plays its own sound when activated from the keyboard.
-      if (!e.repeat && !t.closest?.('[data-switch]')) keySound();
+      if (!e.repeat && !t.closest?.('[data-switch]')) keySound(e.code);
       if (e.repeat || document.querySelector('dialog[open]')) return; // open dialogs own the keys (Esc closes them)
       // "?" by the character it types, not by key position: on a Spanish layout it is Shift+Minus, not Shift+Slash.
       const code = e.key === '?' ? 'Slash' : e.code === 'Slash' ? '' : e.code;
@@ -57,11 +57,17 @@ export function useKeyNav(typeTestActive = false) {
       if (to === 'shortcuts') openShortcuts();
       else goTo(to);
     };
-    const ku = (e: KeyboardEvent) => press(e.code, false);
+    const ku = (e: KeyboardEvent) => {
+      press(e.code, false);
+      if (!(e.target as HTMLElement).closest?.('[data-switch]')) releaseSwitch(selectedSwitch(), e.code);
+    };
     const clear = () => setPressed(new Set());
     const unlock = () => void ensureAudio(); // on release: touch only activates the page on pointerup
     const release = () => {
-      if (held.current) press(held.current, false);
+      if (held.current) {
+        press(held.current, false);
+        releaseSwitch(selectedSwitch(), held.current);
+      }
       held.current = null;
     };
     // In-page links (nav, menu sheet, CTAs) take the same transition; modified clicks keep the browser's behaviour.
@@ -94,7 +100,7 @@ export function useKeyNav(typeTestActive = false) {
     (code: string) => {
       held.current = code;
       press(code, true);
-      keySound();
+      keySound(code);
     },
     [press],
   );

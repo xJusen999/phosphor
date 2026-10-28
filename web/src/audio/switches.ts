@@ -9,9 +9,37 @@ let selected: SwitchProfile = 'linear';
 // still-suspended clock (it plays as the context wakes); any other press on a suspended context is dropped.
 let primed = false;
 
+// Recorded switches (Mechvibes packs, built by scripts/build-sounds.py): five press variants, the three keys
+// that sound different, and keyup sounds where the pack has them. Relative URLs: the export runs from a subfolder.
+const PROFILES: SwitchProfile[] = ['linear', 'tactile', 'clicky'];
+const PRESSES = 5;
+const KEYS: Record<string, string> = { Space: 'space', Enter: 'enter', NumpadEnter: 'enter', Backspace: 'backspace' };
+const HAS_UP: Record<SwitchProfile, boolean> = { linear: false, tactile: true, clicky: false };
+const files = (p: SwitchProfile) => [
+  ...Array.from({ length: PRESSES }, (_, i) => `press${i}`), 'space', 'enter', 'backspace',
+  ...(HAS_UP[p] ? ['up', 'up-space', 'up-enter', 'up-backspace'] : []),
+];
+const banks: Partial<Record<SwitchProfile, Record<string, AudioBuffer>>> = {};
+const loads: Partial<Record<SwitchProfile, Promise<void>>> = {};
+let lastPress = -1;
+
+// Once per profile; a failed load is not retried and that profile keeps the synth.
+function loadBank(c: AudioContext, p: SwitchProfile) {
+  loads[p] ??= Promise.all(
+    files(p).map(async (name) => {
+      const r = await fetch(`./sounds/${p}/${name}.wav`);
+      if (!r.ok) throw new Error(`${r.status} ${name}`);
+      return [name, await c.decodeAudioData(await r.arrayBuffer())] as const;
+    }),
+  ).then((all) => void (banks[p] = Object.fromEntries(all)), () => {});
+}
+
 /** The profile every key press plays (picked in the Sound section). */
 export const selectedSwitch = () => selected;
-export const selectSwitch = (p: SwitchProfile) => void (selected = p);
+export const selectSwitch = (p: SwitchProfile) => {
+  selected = p;
+  if (ctx) loadBank(ctx, p);
+};
 export const isMuted = () => muted;
 export const setMuted = (m: boolean) => void (muted = m);
 
@@ -29,20 +57,26 @@ export async function ensureAudio(): Promise<void> {
     if (!ctx) {
       const c = new AC();
       out = c.createGain();
-      out.gain.value = 0.45;
-      // Headroom: overlapping presses (fast typing) are squeezed by a limiter instead of clipping.
+      out.gain.value = 0.35; // a single press peaks around -10 dBFS
+      // Headroom: overlapping presses (fast typing) are squeezed by a limiter instead of clipping. Its threshold
+      // sits near 0 dBFS because the compressor adds makeup gain (0.6 × its reduction at 0 dBFS) to every sound:
+      // at -10 dB it lifted single presses ~5 dB.
       const limiter = c.createDynamicsCompressor();
-      limiter.threshold.value = -10;
-      limiter.knee.value = 6;
-      limiter.ratio.value = 12;
-      limiter.attack.value = 0.002;
-      limiter.release.value = 0.12;
+      limiter.threshold.value = -1;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.1;
       out.connect(limiter).connect(c.destination);
       // Half a second of white noise; each press reads it from a random offset so no two sound alike.
       noise = c.createBuffer(1, Math.ceil(c.sampleRate * 0.5), c.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       ctx = c;
+      loadBank(c, selected);
+      // The other two in idle time, so switching profile is instant.
+      const later = globalThis.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+      later(() => PROFILES.forEach((p) => loadBank(c, p)));
     }
     if (ctx.state !== 'running') {
       primed = true;
@@ -92,15 +126,53 @@ function tone(c: AudioContext, t: number, dur: number, type: OscillatorType, fre
   o.stop(t + dur);
 }
 
+// A context that may sound now: running, or the press that is resuming it (`consume` spends that pass).
+function live(consume: boolean) {
+  const c = ctx;
+  const ok = !!c && (c.state === 'running' || primed) && !!out && !muted;
+  if (consume) primed = false;
+  return ok ? c : null;
+}
+
+// One recording, with a ±3% pitch and level spread so repeats do not sound looped.
+function sample(c: AudioContext, buffer: AudioBuffer, pitch = 1) {
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = pitch * (0.97 + Math.random() * 0.06);
+  const g = c.createGain();
+  g.gain.value = 0.97 + Math.random() * 0.06;
+  src.connect(g).connect(out!);
+  release(src, g);
+  src.start(c.currentTime + 0.004);
+}
+
+/** The keyup sound of `code` (KeyboardEvent.code), for the packs recorded with one; silent otherwise. */
+export function releaseSwitch(profile: SwitchProfile, code?: string): void {
+  const c = live(false);
+  const bank = banks[profile];
+  const key = code && KEYS[code];
+  const buf = bank && (bank[key ? `up-${key}` : 'up'] ?? bank.up);
+  if (c && buf) sample(c, buf);
+}
+
 /**
- * One key press, synthesised. Linear: a low "thock" (90 ms filtered noise burst + a 180 Hz body);
+ * One key press: the profile's recording once loaded (Space, Enter and Backspace have their own; other keys
+ * take a random press variant, never the same twice in a row), synthesised until then or if it failed to load.
+ * Synth: linear: a low "thock" (90 ms filtered noise burst + a 180 Hz body);
  * tactile: a 30 ms bump just before it; clicky: a 2.8 kHz, 12 ms click on top. `pitch` scales every frequency.
  */
-export function playSwitch(profile: SwitchProfile, { pitch = 1 }: { pitch?: number } = {}): void {
-  const c = ctx;
-  const live = !!c && (c.state === 'running' || primed);
-  primed = false;
-  if (!c || !live || !out || !noise || muted) return;
+export function playSwitch(profile: SwitchProfile, { pitch = 1, code }: { pitch?: number; code?: string } = {}): void {
+  const c = live(true);
+  if (!c || !noise) return;
+  const bank = banks[profile];
+  if (bank) {
+    const key = code && KEYS[code];
+    if (!key) {
+      const i = Math.floor(Math.random() * (lastPress < 0 ? PRESSES : PRESSES - 1));
+      lastPress = lastPress >= 0 && i >= lastPress ? i + 1 : i;
+    }
+    return sample(c, bank[key || `press${lastPress}`], pitch);
+  }
   const t = c.currentTime + 0.004;
   const bottom = profile === 'tactile' ? t + 0.024 : t; // the bump comes before bottom-out
   if (profile === 'tactile') burst(c, t, 0.03, 'bandpass', 560 * pitch, 1.4, 0.4);
@@ -110,4 +182,4 @@ export function playSwitch(profile: SwitchProfile, { pitch = 1 }: { pitch?: numb
 }
 
 /** A slight random pitch per press, so fast typing does not sound like a loop. */
-export const pressPitch = () => 0.95 + Math.random() * 0.1;
+export const pressPitch = () => 0.97 + Math.random() * 0.06;

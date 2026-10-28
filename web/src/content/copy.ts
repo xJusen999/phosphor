@@ -48,13 +48,14 @@ export const sound = {
   title: 'Hear it before you buy it.',
   lead: 'Three switches, three voices. Hover or tap a card to hear it, pick one, then type in the field below. Every key on the page plays it too.',
   switches: [
-    { id: 'linear', key: 'KeyL', name: 'Mist', kind: 'Linear', force: '45 gf', travel: '4.0 mm', text: 'Smooth all the way down. A low, rounded thock.' },
-    { id: 'tactile', key: 'KeyT', name: 'Fern', kind: 'Tactile', force: '55 gf', travel: '3.8 mm', text: 'A soft bump halfway, felt more than heard.' },
-    { id: 'clicky', key: 'KeyC', name: 'Spark', kind: 'Clicky', force: '60 gf', travel: '4.0 mm', text: 'A crisp click on top of the thock. Loud and proud.' },
+    { id: 'linear', key: 'KeyL', name: 'Mist', kind: 'Linear', force: '45 gf', travel: '4.0 mm', text: 'Recorded on NK Cream switches: smooth all the way down, a deep and creamy thock.' },
+    { id: 'tactile', key: 'KeyT', name: 'Fern', kind: 'Tactile', force: '55 gf', travel: '3.8 mm', text: 'Recorded on Holy Pandas: a sharp tactile bump, a short snap and a soft return.' },
+    { id: 'clicky', key: 'KeyC', name: 'Spark', kind: 'Clicky', force: '60 gf', travel: '4.0 mm', text: 'Recorded on Cherry MX Blues: a crisp, bright click on every press. Loud and proud.' },
   ] satisfies { id: SwitchProfile; key: string; name: string; kind: string; force: string; travel: string; text: string }[],
   tryLabel: 'Type here to hear it',
   tryPlaceholder: 'the quick brown fox…',
-  note: 'Sounds are synthesised in your browser, nothing loads. Mute them from the top bar.',
+  note: 'Real switch recordings, a few kilobytes each. Mute them from the top bar.',
+  credit: 'Switch sounds: Mechvibes (MIT) — NK Cream, Holy Pandas, Cherry MX Blue recordings.',
 };
 
 export const build = {

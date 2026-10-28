@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import type { TypeTest } from '../type/useTypeTest';
+import { sound } from '../content/copy';
 import { KeyCap } from '../nav/Menu';
 import { openShortcuts } from '../nav/Shortcuts';
 import { Brand } from './Brand';
@@ -51,7 +52,9 @@ export function Shells({ tap, test }: { tap: (code: string) => void; test: TypeT
       <Type test={test} />
       <Order />
       <footer className={s.footer}>
-        <p>Phosphor One is a design concept, not a product for sale. © 2026 Phosphor.</p>
+        <p>
+          Phosphor One is a design concept, not a product for sale. © 2026 Phosphor. {sound.credit}
+        </p>
         <button type="button" className={s.keys} onClick={openShortcuts}>
           <KeyCap k="?" sr="Question mark" /> Keyboard shortcuts
         </button>

@@ -13,6 +13,7 @@ class FakeNode {
   frequency = new FakeParam();
   gain = new FakeParam();
   Q = new FakeParam();
+  playbackRate = new FakeParam();
   threshold = new FakeParam();
   knee = new FakeParam();
   ratio = new FakeParam();
@@ -42,6 +43,8 @@ class FakeAudioContext {
   createBufferSource() { made.sources++; return track(new FakeNode()); }
   createDynamicsCompressor() { return new FakeNode(); }
   createBuffer(_c: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
+  // The "decoded" buffer is the URL it came from, so a test can tell which recording a voice plays.
+  async decodeAudioData(data: string) { return { url: data }; }
 }
 
 // A browser that never lets the context run (resume() is refused without user activation).
@@ -59,6 +62,16 @@ beforeEach(() => {
   vi.stubGlobal('AudioContext', FakeAudioContext);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+// Serves every sound file (its body is its own URL); `fail` makes them 404.
+const serve = (fail = false) => {
+  const fetch = vi.fn(async (url: string) => ({ ok: !fail, arrayBuffer: async () => url }));
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+};
+// Lets the pending fetch/decode promises settle.
+const settle = () => new Promise((r) => setTimeout(r, 0));
+const played = () => sources.map((n) => (n.buffer as { url?: string } | null)?.url).filter(Boolean);
 
 describe('ensureAudio', () => {
   it('creates no context without user activation (e.g. Escape keydown, touch pointerdown)', async () => {
@@ -145,5 +158,109 @@ describe('playSwitch', () => {
     await ensureAudio();
     await ensureAudio();
     expect(made.contexts).toBe(1);
+  });
+});
+
+describe('recorded switches', () => {
+  it('loads the selected profile from relative URLs on the first gesture', async () => {
+    const fetch = serve();
+    const { ensureAudio, selectSwitch } = await load();
+    selectSwitch('tactile');
+    await ensureAudio();
+    await settle();
+    const urls = fetch.mock.calls.map(([u]) => u);
+    expect(urls).toContain('./sounds/tactile/press0.wav');
+    expect(urls).toContain('./sounds/tactile/up.wav');
+    expect(urls.every((u) => u.startsWith('./sounds/'))).toBe(true);
+  });
+
+  it('falls back to the synth before the buffers are ready', async () => {
+    serve();
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    playSwitch('linear'); // same tick: nothing decoded yet
+    expect(made.oscillators).toBeGreaterThan(0);
+    expect(played()).toEqual([]);
+  });
+
+  it('falls back to the synth when the files fail to load', async () => {
+    serve(true);
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    await settle();
+    playSwitch('clicky');
+    expect(made.oscillators).toBeGreaterThan(0);
+    expect(played()).toEqual([]);
+  });
+
+  it('plays a recorded press once loaded, never the same variant twice in a row', async () => {
+    serve();
+    const { ensureAudio, playSwitch } = await load();
+    await ensureAudio();
+    await settle();
+    for (let i = 0; i < 40; i++) playSwitch('linear');
+    const urls = played();
+    expect(made.oscillators).toBe(0);
+    expect(urls).toHaveLength(40);
+    expect(urls.every((u) => /^\.\/sounds\/linear\/press[0-4]\.wav$/.test(u!))).toBe(true);
+    urls.slice(1).forEach((u, i) => expect(u).not.toBe(urls[i]));
+    expect(new Set(urls).size).toBeGreaterThan(2);
+  });
+
+  it('maps Space, Enter and Backspace to their own recordings', async () => {
+    serve();
+    const { ensureAudio, selectSwitch, playSwitch } = await load();
+    selectSwitch('clicky');
+    await ensureAudio();
+    await settle();
+    playSwitch('clicky', { code: 'Space' });
+    playSwitch('clicky', { code: 'Enter' });
+    playSwitch('clicky', { code: 'NumpadEnter' });
+    playSwitch('clicky', { code: 'Backspace' });
+    playSwitch('clicky', { code: 'KeyA' });
+    const urls = played();
+    expect(urls.slice(0, 4)).toEqual([
+      './sounds/clicky/space.wav', './sounds/clicky/enter.wav', './sounds/clicky/enter.wav', './sounds/clicky/backspace.wav',
+    ]);
+    expect(urls[4]).toMatch(/press[0-4]\.wav$/);
+  });
+
+  it('plays a keyup sound where the pack has one, nothing where it has not', async () => {
+    serve();
+    const { ensureAudio, selectSwitch, releaseSwitch } = await load();
+    selectSwitch('tactile');
+    await ensureAudio();
+    await settle();
+    releaseSwitch('tactile', 'KeyA');
+    releaseSwitch('tactile', 'Space');
+    releaseSwitch('linear', 'KeyA');
+    releaseSwitch('clicky', 'Space');
+    expect(played()).toEqual(['./sounds/tactile/up.wav', './sounds/tactile/up-space.wav']);
+    expect(made.oscillators).toBe(0);
+  });
+
+  it('creates no nodes on a suspended context, press or release', async () => {
+    serve();
+    vi.stubGlobal('AudioContext', StuckAudioContext);
+    const { ensureAudio, playSwitch, releaseSwitch } = await load();
+    await ensureAudio();
+    playSwitch('tactile'); // the gesture's own press may play
+    await settle();
+    const first = { ...made };
+    playSwitch('tactile');
+    releaseSwitch('tactile', 'KeyA');
+    expect(made).toEqual(first);
+  });
+
+  it('disconnects a recorded voice once it has played', async () => {
+    serve();
+    const { ensureAudio, selectSwitch, playSwitch } = await load();
+    selectSwitch('tactile');
+    await ensureAudio();
+    await settle();
+    playSwitch('tactile');
+    expect(sources).toHaveLength(1);
+    sources[0].onended?.();
+    expect(sources[0].disconnected).toBe(true);
   });
 });
