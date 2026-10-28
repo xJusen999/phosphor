@@ -126,11 +126,11 @@ function tone(c: AudioContext, t: number, dur: number, type: OscillatorType, fre
   o.stop(t + dur);
 }
 
-// A context that may sound now: running, or the press that is resuming it (`consume` spends that pass).
-function live(consume: boolean) {
+// A context a press may sound on: running, or the press that is resuming it (this spends that pass).
+function live() {
   const c = ctx;
   const ok = !!c && (c.state === 'running' || primed) && !!out && !muted;
-  if (consume) primed = false;
+  primed = false;
   return ok ? c : null;
 }
 
@@ -148,7 +148,8 @@ function sample(c: AudioContext, buffer: AudioBuffer, pitch = 1) {
 
 /** The keyup sound of `code` (KeyboardEvent.code), for the packs recorded with one; silent otherwise. */
 export function releaseSwitch(profile: SwitchProfile, code?: string): void {
-  const c = live(false);
+  // Running only: the priming pass belongs to the press that resumed the context, never to a release.
+  const c = ctx?.state === 'running' && !!out && !muted ? ctx : null;
   const bank = banks[profile];
   const key = code && KEYS[code];
   const buf = bank && (bank[key ? `up-${key}` : 'up'] ?? bank.up);
@@ -162,7 +163,7 @@ export function releaseSwitch(profile: SwitchProfile, code?: string): void {
  * tactile: a 30 ms bump just before it; clicky: a 2.8 kHz, 12 ms click on top. `pitch` scales every frequency.
  */
 export function playSwitch(profile: SwitchProfile, { pitch = 1, code }: { pitch?: number; code?: string } = {}): void {
-  const c = live(true);
+  const c = live();
   if (!c || !noise) return;
   const bank = banks[profile];
   if (bank) {

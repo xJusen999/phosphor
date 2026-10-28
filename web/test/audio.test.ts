@@ -227,16 +227,31 @@ describe('recorded switches', () => {
 
   it('plays a keyup sound where the pack has one, nothing where it has not', async () => {
     serve();
-    const { ensureAudio, selectSwitch, releaseSwitch } = await load();
-    selectSwitch('tactile');
+    const { ensureAudio, selectSwitch, releaseSwitch, playSwitch } = await load();
     await ensureAudio();
+    (['linear', 'clicky', 'tactile'] as const).forEach(selectSwitch); // all three banks load
     await settle();
-    releaseSwitch('tactile', 'KeyA');
-    releaseSwitch('tactile', 'Space');
     releaseSwitch('linear', 'KeyA');
     releaseSwitch('clicky', 'Space');
+    releaseSwitch('tactile', 'KeyA');
+    releaseSwitch('tactile', 'Space');
     expect(played()).toEqual(['./sounds/tactile/up.wav', './sounds/tactile/up-space.wav']);
+    // The silent ones were loaded: their presses are recorded, not synthesised.
+    playSwitch('linear');
+    playSwitch('clicky');
+    expect(played().slice(2)).toEqual([expect.stringMatching(/linear\/press/), expect.stringMatching(/clicky\/press/)]);
     expect(made.oscillators).toBe(0);
+  });
+
+  it('a release never plays on a suspended context, even right after an unlock without a press', async () => {
+    serve();
+    vi.stubGlobal('AudioContext', StuckAudioContext);
+    const { ensureAudio, selectSwitch, releaseSwitch } = await load();
+    selectSwitch('tactile');
+    await ensureAudio(); // e.g. the pointerup unlock: resume() asked, no press followed
+    await settle();
+    releaseSwitch('tactile', 'KeyA');
+    expect(made.oscillators + made.sources).toBe(0);
   });
 
   it('creates no nodes on a suspended context, press or release', async () => {
