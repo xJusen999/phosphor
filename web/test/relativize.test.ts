@@ -90,4 +90,62 @@ describe('relativize', () => {
     expect(r.status).toBe(1);
     expect(r.stderr.toString()).toContain('top-level');
   });
+
+  describe('host-ready encoding', () => {
+    const BOM = String.fromCharCode(0xfeff);
+    const u = (...cps: number[]) => String.fromCodePoint(...cps);
+    const E = u(0xe9); // e acute
+    const DASH = u(0x2014);
+    const enc = () =>
+      fixture({
+        'index.html': `<p>caf${E}</p>`,
+        '404.html': `<p>${DASH}</p>`,
+        'assets/a.js': `const r="${u(0xfffd)}",e="${u(0x1f600)}",t=\`${E}\${1}\`,re=/${E}/u;/* ${DASH} */`,
+        'assets/b.css': `.a::before{content:"${DASH}"}\n.b{font-family:"Caf${E}"}`,
+        'assets/bom.js': `${BOM}x="${E}"`,
+      });
+    const BS = String.fromCharCode(92); // backslash
+
+    it('escapes non-ASCII in JS as uXXXX escapes (astral chars as a surrogate pair) and in CSS as XXXX escapes', () => {
+      const dir = enc();
+      execFileSync('node', [script, dir]);
+      const js = readFileSync(join(dir, 'assets/a.js'), 'utf8');
+      expect(js).toBe(
+        `const r="${BS}ufffd",e="${BS}ud83d${BS}ude00",t=\`${BS}u00e9\${1}\`,re=/${BS}u00e9/u;/* ${BS}u2014 */`,
+      );
+      // Same values once evaluated.
+      expect(new Function(`${js};return [r,e,t,re.test("${E}")]`)()).toEqual([u(0xfffd), u(0x1f600), `${E}1`, true]);
+      expect(readFileSync(join(dir, 'assets/b.css'), 'utf8')).toBe(
+        `.a::before{content:"${BS}2014 "}\n.b{font-family:"Caf${BS}e9 "}`,
+      );
+      expect(readFileSync(join(dir, 'assets/bom.js'), 'utf8')).toBe(`x="${BS}u00e9"`);
+      for (const f of ['assets/a.js', 'assets/b.css', 'assets/bom.js'])
+        expect([...readFileSync(join(dir, f))].every((b) => b < 128)).toBe(true);
+    });
+
+    it('puts a UTF-8 BOM on loose pages but not on the root index.html (the host wraps it)', () => {
+      const dir = enc();
+      execFileSync('node', [script, dir]);
+      expect(readFileSync(join(dir, '404.html'), 'utf8')).toBe(`${BOM}<p>${DASH}</p>`);
+      expect(readFileSync(join(dir, 'index.html'), 'utf8')).toBe(`<p>caf${E}</p>`);
+    });
+
+    it('is idempotent on encoding', () => {
+      const dir = enc();
+      execFileSync('node', [script, dir]);
+      const snap = tree(dir).map((f) => f + (/\.\w+$/.test(f) ? readFileSync(f, 'utf8') : ''));
+      execFileSync('node', [script, dir]);
+      expect(tree(dir).map((f) => f + (/\.\w+$/.test(f) ? readFileSync(f, 'utf8') : ''))).toEqual(snap);
+    });
+
+    it('writes the build mode marker given as the second argument (default auto)', () => {
+      const a = fixture({ 'index.html': '<p>' });
+      execFileSync('node', [script, a]);
+      expect(readFileSync(join(a, '.phosphor-mode'), 'utf8')).toBe('auto');
+      const o = fixture({ 'index.html': '<p>' });
+      execFileSync('node', [script, o, 'offline']);
+      expect(readFileSync(join(o, '.phosphor-mode'), 'utf8')).toBe('offline');
+      expect(spawnSync('node', [script, fixture({ 'index.html': '<p>' }), 'weird']).status).toBe(1);
+    });
+  });
 });

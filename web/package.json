@@ -6,9 +6,9 @@
     "predev": "npm --prefix ../shared run build",
     "dev": "cross-env NEXT_PUBLIC_DATA=api next dev",
     "prebuild": "npm --prefix ../shared run build",
-    "build": "next build && node scripts/relativize.mjs",
+    "build": "next build && node scripts/relativize.mjs out auto",
     "prebuild:sinapsis": "npm --prefix ../shared run build",
-    "build:sinapsis": "cross-env NEXT_PUBLIC_DATA=offline next build && node scripts/relativize.mjs",
+    "build:sinapsis": "cross-env NEXT_PUBLIC_DATA=offline next build && node scripts/relativize.mjs out offline",
     "pretest": "npm --prefix ../shared run build",
     "test": "vitest run"
   },
@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@phosphor/shared": "*",
-    "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.2",
     "gsap": "3.13.0",
     "lenis": "1.3.26",
