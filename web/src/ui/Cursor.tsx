@@ -5,8 +5,9 @@ import s from './ui.module.css';
 
 const INTERACTIVE = 'a, button, label, summary, select, [role="button"]';
 const TEXT = 'input, textarea';
-// Mouse or trackpad only, and no custom cursor for people who asked for less motion.
-const QUERY = '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)';
+// Mouse or trackpad only; not for people who asked for less motion, nor under forced colours (High Contrast),
+// where the dot would paint as Canvas on Canvas while the native cursor is hidden.
+const QUERY = '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none)';
 
 /**
  * A dot that replaces the pointer and grows into a phosphor ring over anything clickable (the 3D function keys
@@ -29,7 +30,6 @@ export function Cursor() {
     if (!on) return;
     const el = dot.current!;
     const root = document.documentElement;
-    root.dataset.cursor = '';
     let x = 0, y = 0, raf = 0;
     const paint = () => {
       raf = 0;
@@ -47,6 +47,7 @@ export function Cursor() {
       const t = e.target instanceof Element ? e.target : null;
       set('state', t?.closest(TEXT) ? 'text' : t?.closest(INTERACTIVE) || document.body.style.cursor === 'pointer' ? 'hover' : '');
       set('visible', '');
+      if (root.dataset.cursor === undefined) root.dataset.cursor = ''; // hide the native pointer only once the dot can show
       raf ||= requestAnimationFrame(paint);
     };
     const down = (e: PointerEvent) => e.pointerType === 'mouse' && set('down', '');

@@ -75,7 +75,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 150;
+  z-index: 250; /* above the loader (200): the native cursor is already hidden while it is up */
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.25s;
