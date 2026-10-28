@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import type { Group } from 'three';
-import type { BuildConfig } from '@phosphor/shared';
 import { Stage } from '../src/three/Stage';
 import { Keyboard } from '../src/three/Keyboard';
 import { Smoke } from '../src/three/Smoke';
@@ -14,13 +13,23 @@ import { startLenis } from '../src/nav/lenis';
 import { useKeyNav } from '../src/nav/useKeyNav';
 import { goTo, Transition } from '../src/nav/Transition';
 import { Shortcuts } from '../src/nav/Shortcuts';
-
-const FINISH: BuildConfig = { caseFinish: 'frost', keycaps: 'phosphor', switchType: 'linear' };
+import { BuildProvider, useBuild } from '../src/state/build';
+import { useTypeTest } from '../src/type/useTypeTest';
 
 export default function Home() {
+  return (
+    <BuildProvider>
+      <Page />
+    </BuildProvider>
+  );
+}
+
+function Page() {
   const keyboard = useRef<Group>(null);
   const explode = useRef(0);
-  const { pressed, pointerPress, tap } = useKeyNav();
+  const { config } = useBuild();
+  const test = useTypeTest();
+  const { pressed, pointerPress, tap } = useKeyNav(test.active);
   useEffect(startLenis, []);
 
   return (
@@ -29,11 +38,12 @@ export default function Home() {
         <Rig group={keyboard} explode={explode}>
           <Keyboard
             pressed={pressed}
-            finish={FINISH}
+            heat={test.heat}
+            finish={config}
             explode={explode}
             onCap={(k, type, at) => {
               if (type === 'down') pointerPress(k.code);
-              else if (k.fn) goTo(k.fn, at);
+              else if (k.fn && !test.active) goTo(k.fn, at); // the test keeps the page in place
             }}
           />
         </Rig>
@@ -41,7 +51,7 @@ export default function Home() {
         <Composite />
       </Stage>
       <Hero />
-      <Shells tap={tap} />
+      <Shells tap={tap} test={test} />
       <Transition />
       <Shortcuts />
     </main>

@@ -46,6 +46,8 @@ export function useKeyNav(typeTestActive = false) {
       if (e.repeat || document.querySelector('dialog[open]')) return; // open dialogs own the keys (Esc closes them)
       // "?" by the character it types, not by key position: on a Spanish layout it is Shift+Minus, not Shift+Slash.
       const code = e.key === '?' ? 'Slash' : e.code === 'Slash' ? '' : e.code;
+      // Escape leaves a text field even when the jump to the top does not happen (a transition is running).
+      if (e.code === 'Escape' && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) t.blur();
       const to = shouldHandleKey({
         code, shiftKey: e.shiftKey || e.key === '?', ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey,
         targetTag: t.tagName ?? '', targetEditable: !!t.isContentEditable, typeTestActive: testing.current,

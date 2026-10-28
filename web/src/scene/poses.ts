@@ -12,8 +12,8 @@ export const poses: Record<SectionId, Pose> = {
   brand: { pos: [0.62, -0.1, -0.1], rot: [0.18, -0.62, 0.06], scale: 0.7, explode: 0 },
   specs: { pos: [-0.7, -0.15, 0.05], rot: [-0.32, -0.42, 0], scale: 0.6, explode: 1 },
   sound: { pos: [0.7, -1.05, 0.8], rot: [0.14, -0.3, 0], scale: 1.45, explode: 0 },
-  build: { pos: [0.6, -0.15, 0], rot: [0.1, 0.42, 0], scale: 0.7, explode: 0 },
-  type: { pos: [0.4, -0.3, 0.6], rot: [0.62, 0, 0], scale: 0.7, explode: 0 },
+  build: { pos: [0.82, -0.12, 0], rot: [0.1, 0.42, 0], scale: 0.64, explode: 0 }, // clear of the option grid on the left
+  type: { pos: [0.8, -0.1, 0.3], rot: [0.62, -0.18, 0], scale: 0.6, explode: 0 }, // beside the test panel, so the heat stays in view
   order: { pos: [-0.95, -0.3, 0.05], rot: [0.08, 0.5, -0.04], scale: 0.56, explode: 0 },
 };
 

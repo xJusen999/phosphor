@@ -39,9 +39,10 @@ const BREATH_S = 2.4;
 const EXPLODE = { caps: 104, switches: 74, plate: 50, pcb: 32, gasket: 16, strip: -10 };
 
 const CASE_FINISH: Record<BuildConfig['caseFinish'], Partial<MeshPhysicalMaterial>> = {
-  frost: { color: new Color('#eeeeea'), roughness: 0.34, metalness: 0, opacity: 1, transparent: false },
-  graphite: { color: new Color('#2a2d2b'), roughness: 0.42, metalness: 0.55, opacity: 1, transparent: false },
-  clear: { color: new Color('#f2f7f3'), roughness: 0.06, metalness: 0, opacity: 0.42, transparent: true },
+  frost: { color: new Color('#eeeeea'), roughness: 0.34, metalness: 0, opacity: 1, transparent: false, emissiveIntensity: 0 },
+  graphite: { color: new Color('#2a2d2b'), roughness: 0.42, metalness: 0.55, opacity: 1, transparent: false, emissiveIntensity: 0 },
+  // Polycarbonate fills with the LEDs' light: a faint green glow, so it reads as clear even on a white page.
+  clear: { color: new Color('#e3f5e8'), roughness: 0.06, metalness: 0, opacity: 0.34, transparent: true, emissive: PHOSPHOR.clone(), emissiveIntensity: 0.28 },
 };
 const CAP_COLOR: Record<BuildConfig['keycaps'], string> = { phosphor: '#f4f4f0', ink: '#1a1d1a', blank: '#f4f4f0' };
 
@@ -244,7 +245,8 @@ export function Keyboard({ pressed, heat, finish, explode, onCap }: Props) {
         const press = Math.min(Math.max(y / TRAVEL, 0), 1);
         const h = heat?.[li] ?? 0;
         // Press flash stays under the fn "white-hot" threshold (1.6) for plain keys; heat can cross it.
-        const glow = (k.fn ? FN_GLOW * breath : BASE_GLOW) * (1 + (k.fn ? 0.6 : 0.38) * press) * (1 + 1.4 * h);
+        // sqrt: Space tops the hit count, so the letters still show their share of the heat.
+        const glow = (k.fn ? FN_GLOW * breath : BASE_GLOW) * (1 + (k.fn ? 0.6 : 0.38) * press) * (1 + 1.8 * Math.sqrt(h));
         mesh.setColorAt(i, color.copy(PHOSPHOR).multiplyScalar(glow));
       });
       if (moved) mesh.instanceMatrix.needsUpdate = true;

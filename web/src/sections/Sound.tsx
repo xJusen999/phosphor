@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { sound } from '../content/copy';
-import { ensureAudio, playSwitch, selectSwitch, type SwitchProfile } from '../audio/switches';
+import { ensureAudio, playSwitch, type SwitchProfile } from '../audio/switches';
+import { useBuild } from '../state/build';
 import { fx } from '../three/bus';
 import { KeyCap } from '../nav/Menu';
 import shell from './Shells.module.css';
@@ -12,7 +13,8 @@ type Switch = (typeof sound.switches)[number];
 
 /** Space: three switch cards you can hear. Hover previews, a click picks the one every key press plays. */
 export function Sound({ tap }: { tap: (code: string) => void }) {
-  const [picked, setPicked] = useState<SwitchProfile>('linear');
+  const { config, setOption } = useBuild(); // one selected switch for Sound, Build and every key press
+  const picked = config.switchType;
   const cards = useRef<Partial<Record<SwitchProfile, HTMLButtonElement | null>>>({});
   const group = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
@@ -39,8 +41,7 @@ export function Sound({ tap }: { tap: (code: string) => void }) {
   const pick = (sw: Switch) => {
     void ensureAudio();
     focus(sw.key); // stays framed on touch too; the rig lets go when the page scrolls away
-    selectSwitch(sw.id);
-    setPicked(sw.id);
+    setOption('switchType', sw.id);
     play(sw);
   };
   const current = sound.switches.find((sw) => sw.id === picked)!;

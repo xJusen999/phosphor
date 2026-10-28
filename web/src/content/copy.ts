@@ -56,3 +56,45 @@ export const sound = {
   tryPlaceholder: 'the quick brown fox…',
   note: 'Sounds are synthesised in your browser, nothing loads. Mute them from the top bar.',
 };
+
+export const build = {
+  title: 'Yours, down to the switch.',
+  lead: 'Pick a case, keycaps and switches. The board changes as you choose, and so does the price.',
+  groups: {
+    caseFinish: {
+      label: 'Case',
+      notes: { frost: 'Bead-blasted aluminium', graphite: 'Anodised, near black', clear: 'Polycarbonate, see the light' },
+    },
+    keycaps: {
+      label: 'Keycaps',
+      notes: { phosphor: 'White PBT, lit legends', ink: 'Dark PBT, lit legends', blank: 'No legends, only light' },
+    },
+    switchType: { label: 'Switches', notes: { linear: 'Mist, smooth', tactile: 'Fern, a soft bump', clicky: 'Spark, a crisp click' } },
+  },
+  total: 'Your Phosphor One',
+  cta: 'Pre-order this build',
+};
+
+export const typing = {
+  title: 'Thirty seconds. Go.',
+  lead: 'A real typing test on the board. The keys you hit most glow hottest, and your best score joins the table.',
+  start: 'Start the test',
+  again: 'Run it again',
+  armed: 'The clock starts on your first key. Esc stops the test.',
+  running: 'Keep going. Esc stops the test; the other shortcuts wait until it ends.',
+  aborted: 'Stopped early. Run the full thirty seconds to post a score.',
+  board: 'Top ten',
+  empty: 'No scores yet. Be the first.',
+};
+
+export const order = {
+  title: 'Ships in spring.',
+  lead: 'Reserve the build you just made. Nothing is charged today: we email you before it ships.',
+  summary: 'Your build',
+  change: 'Change the build',
+  waitlistTitle: 'Not ready yet?',
+  waitlistLead: 'Join the waitlist and hear first when the next batch opens.',
+  concept: 'Phosphor is a design concept. No order ships and no payment is ever taken.',
+};
+
+export const offlineNote = 'This copy of the page can’t save anything: it lasts until you close the tab.';
