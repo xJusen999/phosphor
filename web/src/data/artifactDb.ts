@@ -1,5 +1,5 @@
-import { priceOf } from '@phosphor/shared';
-import { byRank, DataError, type DataClient, type Score } from './client';
+import { byRank, cleanName, priceOf } from '@phosphor/shared';
+import { DataError, type DataClient, type NewScore, type Score } from './client';
 
 type Body = Record<string, unknown>;
 type DocSnap = { id: string; exists?: boolean; data(): Body | undefined };
@@ -24,18 +24,24 @@ async function sha256Hex(text: string): Promise<string> {
 
 const emailHash = (email: string) => sha256Hex(email.trim().toLowerCase());
 
+// Same limits as the API's ScoreDto: a clean name as typed, 0-300 wpm, accuracy 0-1.
+const validScore = (x: Body): x is Body & NewScore =>
+  typeof x.name === 'string' && cleanName(x.name) === x.name &&
+  typeof x.wpm === 'number' && x.wpm >= 0 && x.wpm <= 300 &&
+  typeof x.accuracy === 'number' && x.accuracy >= 0 && x.accuracy <= 1;
+
 // shortcut: ranks only look at the 1000 fastest scores, the query cap; fine for a demo leaderboard.
 async function allScores(db: DbLike): Promise<(Score & { id: string })[]> {
   const snap = await db.collection('scores').orderBy('wpm', 'desc').limit(1000).get();
-  // Shared docs are writable by any viewer: keep only well-formed ones.
+  // Shared docs are writable by any viewer: keep only well-formed, in-range ones.
   return snap.docs.flatMap((d) => {
     const x = d.data();
-    if (!x || typeof x.name !== 'string' || !Number.isFinite(x.wpm) || !Number.isFinite(x.accuracy)) return [];
-    return [{ name: x.name, wpm: x.wpm as number, accuracy: x.accuracy as number, at: String(x.at ?? ''), id: d.id }];
+    if (!x || !validScore(x)) return [];
+    return [{ name: x.name, wpm: x.wpm, accuracy: x.accuracy, at: String(x.at ?? ''), id: d.id }];
   });
 }
 
-const DENIED = new Set(['not_granted', 'not_writer', 'invalid_argument', 'capability_disabled', 'capability_removed']);
+const DENIED = new Set(['not_granted', 'not_writer', 'capability_disabled', 'capability_removed']);
 const UNAVAILABLE = new Set(['unavailable', 'network', 'revoked', 'quota_exceeded', 'resource_exhausted']);
 
 // Store rejections become DataError; never a fake success.
@@ -44,6 +50,7 @@ function toDataError(e: unknown): DataError {
   const code = (e as { code?: unknown } | null)?.code;
   if (typeof code === 'string') {
     if (DENIED.has(code)) return new DataError('denied', code);
+    if (code === 'invalid_argument') return new DataError('invalid', code);
     if (UNAVAILABLE.has(code)) return new DataError('unavailable', code);
   }
   // A codeless fetch-style failure is a network problem.
@@ -86,6 +93,7 @@ function createRaw(db: DbLike): DataClient {
       return { id: ref.id, total };
     },
     async submitScore(s) {
+      if (!validScore(s)) throw new DataError('invalid', 'score out of range');
       const ref = await db
         .collection('scores')
         .add({ name: s.name, wpm: s.wpm, accuracy: s.accuracy, at: new Date().toISOString() });

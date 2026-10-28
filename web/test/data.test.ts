@@ -85,7 +85,7 @@ describe('offline client', () => {
 
   it('keeps topScores sorted and capped at 10', async () => {
     const c = createOffline();
-    for (let i = 0; i < 12; i++) await c.submitScore({ name: `p${i}`, wpm: 50 + i, accuracy: 90 });
+    for (let i = 0; i < 12; i++) await c.submitScore({ name: `p${i}`, wpm: 50 + i, accuracy: 0.9 });
     const top = await c.topScores();
     expect(top).toHaveLength(10);
     expect(top.map((s) => s.wpm)).toEqual([61, 60, 59, 58, 57, 56, 55, 54, 53, 52]);
@@ -93,8 +93,8 @@ describe('offline client', () => {
 
   it('reports a 1-based rank and a growing waitlist position', async () => {
     const c = createOffline();
-    expect((await c.submitScore({ name: 'a', wpm: 80, accuracy: 99 })).rank).toBe(1);
-    expect((await c.submitScore({ name: 'b', wpm: 90, accuracy: 99 })).rank).toBe(1);
+    expect((await c.submitScore({ name: 'a', wpm: 80, accuracy: 0.99 })).rank).toBe(1);
+    expect((await c.submitScore({ name: 'b', wpm: 90, accuracy: 0.99 })).rank).toBe(1);
     expect((await c.joinWaitlist('a@b.co')).position).toBe(1);
     expect((await c.joinWaitlist('c@d.co')).position).toBe(2);
     expect((await c.joinWaitlist('a@b.co')).position).toBe(1);
@@ -128,8 +128,8 @@ describe('artifact db client', () => {
 
   it('submits and ranks scores', async () => {
     const c = createArtifactDb(fakeDb());
-    await c.submitScore({ name: 'a', wpm: 70, accuracy: 95 });
-    const { rank } = await c.submitScore({ name: 'b', wpm: 90, accuracy: 95 });
+    await c.submitScore({ name: 'a', wpm: 70, accuracy: 0.95 });
+    const { rank } = await c.submitScore({ name: 'b', wpm: 90, accuracy: 0.95 });
     expect(rank).toBe(1);
     expect((await c.topScores())[0].name).toBe('b');
   });
@@ -139,13 +139,45 @@ describe('artifact db robustness', () => {
   it('ignores malformed score docs', async () => {
     const db = fakeDb();
     const c = createArtifactDb(db);
-    await c.submitScore({ name: 'a', wpm: 70, accuracy: 95 });
-    await c.submitScore({ name: 'b', wpm: 90, accuracy: 95 });
+    await c.submitScore({ name: 'a', wpm: 70, accuracy: 0.95 });
+    await c.submitScore({ name: 'b', wpm: 90, accuracy: 0.95 });
     db.cols.scores.set('bad1', { name: 'x', wpm: 'fast', accuracy: 1 });
     db.cols.scores.set('bad2', { wpm: 100, accuracy: 1 });
-    db.cols.scores.set('noat', { name: 'noat', wpm: 80, accuracy: 90 });
+    db.cols.scores.set('noat', { name: 'noat', wpm: 80, accuracy: 0.9 });
     const top = await c.topScores();
     expect(top.map((s) => s.name)).toEqual(['b', 'noat', 'a']);
+  });
+
+  it('drops out-of-range and badly named score docs (any viewer can write them)', async () => {
+    const db = fakeDb();
+    const c = createArtifactDb(db);
+    await c.submitScore({ name: 'ok', wpm: 70, accuracy: 0.95 });
+    const bad = {
+      fast: { name: 'fast', wpm: 1e9, accuracy: 1 },
+      neg: { name: 'neg', wpm: -1, accuracy: 1 },
+      acc: { name: 'acc', wpm: 80, accuracy: 95 },
+      negacc: { name: 'negacc', wpm: 80, accuracy: -0.1 },
+      long: { name: 'x'.repeat(5000), wpm: 80, accuracy: 1 },
+      chars: { name: '<b>hi</b>', wpm: 80, accuracy: 1 },
+      padded: { name: ' pad ', wpm: 80, accuracy: 1 },
+    };
+    for (const [id, doc] of Object.entries(bad)) db.cols.scores.set(id, doc);
+    db.cols.scores.set('edge', { name: 'edge', wpm: 300, accuracy: 0 });
+    expect((await c.topScores()).map((s) => s.name)).toEqual(['edge', 'ok']);
+  });
+
+  it.each([
+    ['wpm above 300', { name: 'a', wpm: 301, accuracy: 1 }],
+    ['negative wpm', { name: 'a', wpm: -1, accuracy: 1 }],
+    ['accuracy above 1', { name: 'a', wpm: 50, accuracy: 95 }],
+    ['an overlong name', { name: 'x'.repeat(17), wpm: 50, accuracy: 1 }],
+    ['a name with markup', { name: '<i>', wpm: 50, accuracy: 1 }],
+  ])('rejects a score with %s as invalid, without writing it', async (_, score) => {
+    const db = fakeDb();
+    const err = await createArtifactDb(db).submitScore(score).catch((e) => e);
+    expect(err).toBeInstanceOf(DataError);
+    expect(err.code).toBe('invalid');
+    expect(db.cols.scores?.size ?? 0).toBe(0);
   });
 
   it('ranks last+1 when the new score is outside the window', async () => {
@@ -155,14 +187,14 @@ describe('artifact db robustness', () => {
     // The query window never includes the doc just added.
     db.collection = () => ({
       ...real,
-      orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [{ id: 'other', data: () => ({ name: 'o', wpm: 99, accuracy: 99, at: 'x' }) }] }) }) }),
+      orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [{ id: 'other', data: () => ({ name: 'o', wpm: 99, accuracy: 0.99, at: 'x' }) }] }) }) }),
     });
     expect((await c.submitScore({ name: 'a', wpm: 1, accuracy: 1 })).rank).toBe(2);
   });
 
   it.each([
     ['not_granted', 'denied'],
-    ['invalid_argument', 'denied'],
+    ['invalid_argument', 'invalid'],
     ['unavailable', 'unavailable'],
     ['quota_exceeded', 'unavailable'],
     ['network', 'unavailable'],
