@@ -52,6 +52,10 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
       heat.fill(0);
       phase = 'armed';
     },
+    /** Focus left the test before the first key: back to idle, so the page gets its keys again. */
+    disarm() {
+      if (phase === 'armed') phase = 'idle';
+    },
     /** `key` is the typed character (KeyboardEvent.key); without it a Key[A-Z] position types its QWERTY letter. */
     onKey(code: string, key?: string) {
       sync();
@@ -128,6 +132,23 @@ export function createTypeTest({ words: given, now = () => performance.now() }: 
 
 export type TypeTest = ReturnType<typeof useTypeTest>;
 
+const FIELD = 'input,textarea,select,[contenteditable]';
+
+/**
+ * The window keydown listener while the test is armed or running. Keys typed into a field, or pressed while a
+ * dialog is open, belong to that field or dialog (an email in Order, a dialog's native Escape).
+ */
+export function keyCapture(onKey: (code: string, key?: string) => void, dialogOpen: () => boolean) {
+  return (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || !INDEX.has(e.code)) return;
+    if ((e.target as Element | null)?.closest?.(FIELD) || dialogOpen()) return;
+    e.preventDefault(); // Space would scroll, Enter would press a focused button, Tab would move focus
+    // Capture on window runs before useKeyNav's bubble listener, so stopping Escape here keeps it from jumping to the top.
+    if (e.code === 'Escape') e.stopPropagation();
+    if (!e.repeat) onKey(e.code, e.key);
+  };
+}
+
 /**
  * The type test for the page. While `active`, it owns the keyboard: layout keys go to the test (no scrolling,
  * no button presses) and Escape ends it before the key navigation sees it. `heat` is one stable array.
@@ -141,6 +162,10 @@ export function useTypeTest() {
     test.start();
     render();
   }, [test]);
+  const disarm = useCallback(() => {
+    test.disarm();
+    render();
+  }, [test]);
   const onKey = useCallback(
     (code: string, key?: string) => {
       test.onKey(code, key);
@@ -151,13 +176,7 @@ export function useTypeTest() {
 
   useEffect(() => {
     if (!active) return;
-    // Capture on window: runs before useKeyNav's bubble listener, so stopping Escape here keeps it from jumping to the top.
-    const kd = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || !INDEX.has(e.code)) return;
-      e.preventDefault(); // Space would scroll, Enter would press a focused button, Tab would move focus
-      if (e.code === 'Escape') e.stopPropagation();
-      if (!e.repeat) onKey(e.code, e.key);
-    };
+    const kd = keyCapture(onKey, () => !!document.querySelector('dialog[open]'));
     const id = setInterval(render, 200); // clock and live wpm; the getters end the test when time is up
     addEventListener('keydown', kd, true);
     return () => {
@@ -169,6 +188,7 @@ export function useTypeTest() {
   return {
     active,
     start,
+    disarm,
     onKey,
     phase: test.phase,
     wpm: test.wpm,

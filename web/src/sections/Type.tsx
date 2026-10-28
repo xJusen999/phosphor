@@ -89,7 +89,9 @@ export function Type({ test }: { test: TypeTest }) {
 
         <div className={s.typeGrid} data-rise>
           <div ref={panel} className={s.panel} tabIndex={-1} data-phase={phase} role="group" aria-label="Typing test"
-            aria-describedby="type-next">
+            aria-describedby="type-next"
+            // Armed but focus went elsewhere (a click on the page, Tab to a field): give the keys back.
+            onBlur={(e) => !panel.current?.contains(e.relatedTarget as Node | null) && test.disarm()}>
             <div className={s.stats}>
               <span className={s.stat}>
                 <b>{seconds}</b> s

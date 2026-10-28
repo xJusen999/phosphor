@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LAYOUT_60 } from '@phosphor/shared';
-import { createTypeTest, TEST_MS } from '../src/type/useTypeTest';
+import { createTypeTest, keyCapture, TEST_MS } from '../src/type/useTypeTest';
 import { shuffledWords, WORDS } from '../src/type/words';
 
 const TEXT = ['the', 'of', 'and', 'to', 'in', 'is'];
@@ -134,6 +134,70 @@ describe('type test', () => {
     test.onKey('Semicolon', 'o');
     test.onKey('KeyQ', "'");
     expect(test.cur).toBe("o'");
+  });
+});
+
+describe('keyCapture (the page-wide listener while the test is armed or running)', () => {
+  // A stand-in for an element: closest() matches when the selector names its tag.
+  const el = (tag: string) => ({ closest: (sel: string) => (sel.split(',').includes(tag) ? {} : null) });
+  const key = (code: string, target: unknown) => ({
+    code, key: code === 'Space' ? ' ' : code.slice(3).toLowerCase(), target,
+    ctrlKey: false, metaKey: false, altKey: false, repeat: false,
+    preventDefault: vi.fn(), stopPropagation: vi.fn(),
+  });
+  const armed = () => {
+    const { test } = setup();
+    test.start();
+    return test;
+  };
+
+  it('a key aimed at an input is not consumed and does not start the test', () => {
+    const test = armed();
+    const e = key('KeyA', el('input'));
+    keyCapture(test.onKey, () => false)(e as never);
+    expect(e.preventDefault).not.toHaveBeenCalled();
+    expect(test.phase).toBe('armed');
+    for (const tag of ['textarea', 'select', '[contenteditable]']) {
+      const f = key('KeyA', el(tag));
+      keyCapture(test.onKey, () => false)(f as never);
+      expect(f.preventDefault).not.toHaveBeenCalled();
+    }
+    expect(test.phase).toBe('armed');
+  });
+
+  it('leaves every key alone while a dialog is open (its native Escape closes it)', () => {
+    const test = armed();
+    const e = key('Escape', el('body'));
+    e.key = 'Escape';
+    keyCapture(test.onKey, () => true)(e as never);
+    expect(e.preventDefault).not.toHaveBeenCalled();
+    expect(e.stopPropagation).not.toHaveBeenCalled();
+    expect(test.phase).toBe('armed');
+  });
+
+  it('takes a layout key aimed at the page and starts the test', () => {
+    const test = armed();
+    const e = key('KeyT', el('div'));
+    keyCapture(test.onKey, () => false)(e as never);
+    expect(e.preventDefault).toHaveBeenCalled();
+    expect(test.phase).toBe('running');
+  });
+});
+
+describe('disarm (focus left the test panel)', () => {
+  it('sends an armed test back to idle', () => {
+    const { test } = setup();
+    test.start();
+    test.disarm();
+    expect(test.phase).toBe('idle');
+    expect(test.active).toBe(false);
+  });
+  it('leaves a running test alone', () => {
+    const { test, type } = setup();
+    test.start();
+    type('th');
+    test.disarm();
+    expect(test.phase).toBe('running');
   });
 });
 
